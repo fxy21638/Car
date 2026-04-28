@@ -1,41 +1,82 @@
-## Example Summary
+# 小车工程技术文档与接线配置 (MSPM0G3507)
 
-Empty project using DriverLib.
-This example shows a basic empty project using DriverLib with just main file
-and SysConfig initialization.
+## 1. 工程架构说明
 
-## Peripherals & Pin Assignments
+本工程针对 MSPM0G3507 微控制器进行了模块化设计，文件架构经过合理划分，避免了代码堆积：
 
-| Peripheral | Pin | Function |
+- **`App/` (应用层)**: 
+  - `empty.c` : 主程序入口 (包含 `main` 函数)。
+  - `task.c` / `task.h` : 存放系统的应用级任务调度、逻辑控制代码。
+
+- **`Bsp/` (板级支持层/外设驱动层)**:
+  - `Motor.*` : 电机驱动 (AIN1/2, BIN1/2 方向控制等)。
+  - `OLED.*` / `OLED_Data.*` : OLED 显示驱动。
+  - `MPU6050_MSPM0.*` : 陀螺仪和加速度计驱动 (模拟/硬件 I2C)。
+  - `Encoder.*` : 编码器驱动及外部中断配置 (脉冲计数)。
+  - `Key.*` : 按键输入检测。
+  - `Sensor.*` : 灰度循迹传感器 / 对应传感器组驱动。
+  - `Ultrasonic.*` : 超声波测距驱动 (Trig / Echo)。
+  - `Uart.*` : 串口通讯配置。
+  - `Delay.*` : 滴答定时器或其他精确延时函数。
+
+- **`System/` (系统/算法层)**:
+  - `PID.*` : PID 控制算法（用于速度环、方向环等）。
+  - `ti_msp_dl_config.*` 及 `empty.syscfg` (在根目录): SYSCONFIG 自动生成的底层初始化配置库文件。
+
+---
+
+## 2. 硬件接线配置表
+
+根据 `empty.syscfg` 的引脚分配，以下为主要的硬件接线分配表，请确保按此表进行连线：
+
+### 2.1 循迹传感器 (TRACK_SENSOR)
+| 管脚定义 | 芯片引脚 | 说明 |
 | --- | --- | --- |
-| SYSCTL |  |  |
-| DEBUGSS | PA20 | Debug Clock |
-| DEBUGSS | PA19 | Debug Data In Out |
+| S0 | PB24 | 灰度循迹传感器 0 (输入) |
+| S1 | PB14 | 灰度循迹传感器 1 (输入) |
+| S2 | PB19 | 灰度循迹传感器 2 (输入) |
+| S3 | PB18 | 灰度循迹传感器 3 (输入) |
+| S4 | PB17 | 灰度循迹传感器 4 (输入) |
+| S5 | PB16 | 灰度循迹传感器 5 (输入) |
+| S6 | PB2 | 灰度循迹传感器 6 (输入) |
+| S7 | PB9 | 灰度循迹传感器 7 (输入) |
 
-## BoosterPacks, Board Resources & Jumper Settings
+### 2.2 电机驱动 (MOTOR)
+| 管脚定义 | 芯片引脚 | 说明 |
+| --- | --- | --- |
+| AIN1 | PA24 | 左电机方向控制1 |
+| AIN2 | PA16 | 左电机方向控制2 |
+| BIN1 | PB6 | 右电机方向控制1 |
+| BIN2 | PB7 | 右电机方向控制2 |
+*(注: 具体的 PWM 调速引脚请参考 syscfg 中 PWM 定时器的分配管脚)*
 
-Visit [LP_MSPM0G3507](https://www.ti.com/tool/LP-MSPM0G3507) for LaunchPad information, including user guide and hardware files.
+### 2.3 编码器 (ENCODER)
+| 管脚定义 | 芯片引脚 | 说明 |
+| --- | --- | --- |
+| E1A (ENCODER_A) | PA15 | 编码器1 A相 (上升沿中断, 上拉) |
+| E1B (ENCODER_A) | PA14 | 编码器1 B相 (上升沿中断, 上拉) |
+| E2A (ENCODER_B) | PA13 | 编码器2 A相 (上升沿中断, 上拉) |
+| E2B (ENCODER_B) | PA12 | 编码器2 B相 (上升沿中断, 上拉) |
 
-| Pin | Peripheral | Function | LaunchPad Pin | LaunchPad Settings |
-| --- | --- | --- | --- | --- |
-| PA20 | DEBUGSS | SWCLK | N/A | <ul><li>PA20 is used by SWD during debugging<br><ul><li>`J101 15:16 ON` Connect to XDS-110 SWCLK while debugging<br><li>`J101 15:16 OFF` Disconnect from XDS-110 SWCLK if using pin in application</ul></ul> |
-| PA19 | DEBUGSS | SWDIO | N/A | <ul><li>PA19 is used by SWD during debugging<br><ul><li>`J101 13:14 ON` Connect to XDS-110 SWDIO while debugging<br><li>`J101 13:14 OFF` Disconnect from XDS-110 SWDIO if using pin in application</ul></ul> |
+### 2.4 其他外设
+| 外设模块 | 管脚定义 | 芯片引脚 | 说明 |
+| --- | --- | --- | --- |
+| **OLED** | SDA | PA0 |  |
+| | SCL | PA1 |  |
+| **MPU6050** | MPU_SDA | PA7 | 上拉输入 |
+| | MPU_SCL | PA6 | 上拉输入 |
+| **超声波** | Trig_Pin | PB8 | 触发引脚 (输出) |
+| | Echo_Pin | PB15 | 回响引脚 (输入) |
+| **独立按键** | PIN_0 | PA22 | 按键 0 |
+| | PIN_1 | PA27 | 按键 1 |
+| | PIN_2 | PA28 | 按键 2 |
+| | PIN_3 | PA31 | 按键 3 |
 
-### Device Migration Recommendations
-This project was developed for a superset device included in the LP_MSPM0G3507 LaunchPad. Please
-visit the [CCS User's Guide](https://software-dl.ti.com/msp430/esd/MSPM0-SDK/latest/docs/english/tools/ccs_ide_guide/doc_guide/doc_guide-srcs/ccs_ide_guide.html#sysconfig-project-migration)
-for information about migrating to other MSPM0 devices.
+---
 
-### Low-Power Recommendations
-TI recommends to terminate unused pins by setting the corresponding functions to
-GPIO and configure the pins to output low or input with internal
-pullup/pulldown resistor.
+## 3. 开发与编译说明
 
-SysConfig allows developers to easily configure unused pins by selecting **Board**→**Configure Unused Pins**.
-
-For more information about jumper configuration to achieve low-power using the
-MSPM0 LaunchPad, please visit the [LP-MSPM0G3507 User's Guide](https://www.ti.com/lit/slau873).
-
-## Example Usage
-
-Compile, load and run the example.
+1. 本工程适用于 **Keil MDK** 或 **TI Code Composer Studio (CCS)**。
+2. 当新增 `.c` 或者 `.h` 文件时，请将其分类存放入 `App`、`Bsp` 或 `System` 内。
+3. 请在您使用的集成开发环境(IDE)中同步新增上述分组，并将对应路径加入到 include paths。
+4. 如果需要修改引脚，请通过工程根目录的 `empty.syscfg` 用 **SysConfig 工具**进行图形化分配，编译时将自动更新底层配置代码。
