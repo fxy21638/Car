@@ -8,6 +8,8 @@ extern volatile int32_t Get_Encoder_countA;
 extern volatile int32_t Get_Encoder_countB;
 extern volatile int32_t encoderA_cnt;
 extern volatile int32_t encoderB_cnt;
+extern volatile int32_t totalEncoderCountA;
+extern volatile int32_t totalEncoderCountB;
 
 extern int leftEncSpeed;
 extern int rightEncSpeed;
