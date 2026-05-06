@@ -1,2 +1,34 @@
 Debug/
 .settings/
+
+# Build outputs
+build/
+dist/
+out/
+
+# Generic embedded/compiler artifacts
+*.o
+*.obj
+*.d
+*.dep
+*.map
+*.out
+*.bin
+*.hex
+*.elf
+*.axf
+*.lst
+*.lnp
+
+# Keil / uVision
+keil/Objects/
+*.uvoptx
+*.uvguix.*
+
+# IAR
+*.pbd
+*.browse
+*.dbgdt
+
+# CCS / Theia generated build dirs
+.metadata/

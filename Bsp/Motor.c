@@ -49,9 +49,14 @@ void Set_PWM(int pwm_l, int pwm_r)
     {
         DL_GPIO_clearPins(MOTOR_BIN1_PORT, MOTOR_BIN1_PIN | MOTOR_BIN2_PIN);
     }
-    if (duty_l < 25)
+    if (pwm_l == 0)
+        duty_l = 0;
+    else if (duty_l < 25)
         duty_l = 25;
-    if (duty_r < 25)
+
+    if (pwm_r == 0)
+        duty_r = 0;
+    else if (duty_r < 25)
         duty_r = 25;
 
     // 设置 PWM 比较值
