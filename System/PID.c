@@ -11,8 +11,11 @@ extern PID_t anglePID;
 extern int PWMleft, PWMright;
 extern int targetLeftSpeed, targetRightSpeed;
 extern int leftEncSpeed, rightEncSpeed;
+extern int leftSpeedTrim;
 extern int is_lost;
 extern float yaw;
+
+static const int kCenterDeadband = 2;
 
 void PID_Init(PID_t *pid, float Kp, float Ki, float Kd,
               float output_max, float output_min, float sum_max, float filter_alpha)
@@ -75,11 +78,17 @@ void PID_Reset(PID_t *pid)
 
 void PID_control(void)
 {
+    int steerActual = linePos;
+    if ((steerActual >= -kCenterDeadband) && (steerActual <= kCenterDeadband))
+    {
+        steerActual = 0;
+    }
+
     steerPID.target = 0;
-    steerPID.actual = linePos;
+    steerPID.actual = steerActual;
     PID_Update(&steerPID);
 
-    targetLeftSpeed = BASE_SPEED + (int)steerPID.output;
+    targetLeftSpeed = BASE_SPEED + leftSpeedTrim + (int)steerPID.output;
     targetRightSpeed = BASE_SPEED - (int)steerPID.output;
 
     leftPID.target = targetLeftSpeed;

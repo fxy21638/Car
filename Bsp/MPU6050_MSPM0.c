@@ -343,7 +343,7 @@ bool MPU6050_UpdateYaw(MPU6050_Handle *dev, uint32_t nowMs)
 
     /* 添加死区过滤：小于 ±0.05 dps 的漂移认为是噪声 */
     float drift_dps = gz_dps - dev->gyroZBias_dps;
-    if (drift_dps > -0.5f && drift_dps < 0.5f)
+    if (drift_dps > -0.8f && drift_dps < 0.8f)
     {
         drift_dps = 0.0f;
     }
