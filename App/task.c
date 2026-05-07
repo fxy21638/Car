@@ -19,6 +19,12 @@ typedef enum
 
 typedef enum
 {
+    SEGMENT_BLACK = 0,
+    SEGMENT_WHITE
+} SegmentType;
+
+typedef enum
+{
     AVOID_IDLE = 0,
     AVOID_STOP,
     AVOID_TURN_LEFT,
@@ -39,7 +45,6 @@ typedef enum
 static const uint8_t kStartKey = 0;
 static const int kCurveBaseSpeed = 52;
 static const int kHiddenBaseSpeed = 48;
-static const uint8_t kHiddenSegmentsPerLap = 2;
 static const unsigned long kHiddenStraightMinMs = 120UL;
 static const unsigned long kHiddenEntryFollowMs = 80UL;
 static const unsigned long kIrFilterMs = 20UL;
@@ -47,13 +52,18 @@ static const float kHiddenYawKp = 0.6f;
 static const int kHiddenYawMaxComp = 5;
 static const float kHiddenExitTurnDeg = -15.0f;
 static const float kHiddenYawDeadbandDeg = 2.0f;
+static const uint8_t kTransitionsPerLap = 4U;
 
 static uint8_t g_running = 0;
-static uint8_t g_hiddenSegments = 0;
+static uint8_t g_targetLaps = 1U;
+static uint8_t g_completedLaps = 0;
+static uint8_t g_completedTransitions = 0;
 static unsigned long g_hiddenStartMs = 0;
 static int g_hiddenEntryLinePos = 0;
 static float g_hiddenTargetYaw = 0.0f;
 static TrackState g_trackState = TRACK_IDLE;
+static SegmentType g_startSegment = SEGMENT_BLACK;
+static SegmentType g_currentSegment = SEGMENT_BLACK;
 static uint8_t g_allWhiteFiltered = 0;
 static uint8_t g_allWhiteLastRaw = 0;
 static unsigned long g_allWhiteLastChangeMs = 0;
@@ -69,6 +79,7 @@ static void Stop_Run(void);
 static uint8_t Sensor_IsAllWhiteLocal(void);
 static uint8_t Sensor_GetAllWhiteFiltered(void);
 static int ClampIntLocal(int value, int minValue, int maxValue);
+static uint8_t OnSegmentTransition(SegmentType nextSegment);
 
 extern int BASE_SPEED;
 extern int linePos;
@@ -89,8 +100,9 @@ extern PID_t anglePID;
 extern volatile unsigned long tick_ms;
 
 /* 在系统初始化后调用一次，重置 K0 任务内部状态 */
-void K0_RunTask_Init(void)
+void K0_RunTask_Init(uint8_t lapCount)
 {
+    g_targetLaps = (lapCount == 0U) ? 1U : lapCount;
     Reset_RunState();
 }
 
@@ -134,7 +146,11 @@ void K0_RunTask(void)
         else
         {
             /* 第一次进入全白区，切到隐藏直道状态并记录进入姿态 */
-            g_hiddenSegments++;
+            if (OnSegmentTransition(SEGMENT_WHITE))
+            {
+                Stop_Run();
+                return;
+            }
             g_hiddenStartMs = tick_ms;
             g_hiddenEntryLinePos = linePos;
             origin_yaw = yaw;
@@ -178,7 +194,7 @@ void K0_RunTask(void)
 
         if (!allWhite && hiddenElapsedMs >= kHiddenStraightMinMs)
         {
-            if (g_hiddenSegments >= kHiddenSegmentsPerLap)
+            if (OnSegmentTransition(SEGMENT_BLACK))
             {
                 /* 跑完设定空白段数量后自动停车 */
                 Stop_Run();
@@ -334,11 +350,14 @@ static void Reset_RunState(void)
     origin_yaw = 0.0f;
 
     g_running = 0;
-    g_hiddenSegments = 0;
+    g_completedLaps = 0;
+    g_completedTransitions = 0;
     g_hiddenStartMs = 0;
     g_hiddenEntryLinePos = 0;
     g_hiddenTargetYaw = 0.0f;
     g_trackState = TRACK_IDLE;
+    g_startSegment = SEGMENT_BLACK;
+    g_currentSegment = SEGMENT_BLACK;
     g_allWhiteFiltered = 0;
     g_allWhiteLastRaw = 0;
     g_allWhiteLastChangeMs = tick_ms;
@@ -367,7 +386,23 @@ static void Start_Run(void)
         g_hiddenTargetYaw = 0.0f;
     }
     g_running = 1;
-    g_trackState = TRACK_VISIBLE_CURVE;
+    if (Sensor_GetAllWhiteFiltered())
+    {
+        g_startSegment = SEGMENT_WHITE;
+        g_currentSegment = SEGMENT_WHITE;
+        g_hiddenStartMs = tick_ms;
+        g_hiddenEntryLinePos = 0;
+        origin_yaw = yaw;
+        g_hiddenTargetYaw = yaw;
+        g_trackState = TRACK_HIDDEN_STRAIGHT;
+    }
+    else
+    {
+        g_startSegment = SEGMENT_BLACK;
+        g_currentSegment = SEGMENT_BLACK;
+        linePos = Sensor_GetQuantizedPos();
+        g_trackState = TRACK_VISIBLE_CURVE;
+    }
 }
 
 static void Stop_Run(void)
@@ -413,4 +448,27 @@ static int ClampIntLocal(int value, int minValue, int maxValue)
     if (value > maxValue)
         return maxValue;
     return value;
+}
+
+static uint8_t OnSegmentTransition(SegmentType nextSegment)
+{
+    if (nextSegment == g_currentSegment)
+    {
+        return 0U;
+    }
+
+    g_currentSegment = nextSegment;
+    g_completedTransitions++;
+
+    if ((g_currentSegment == g_startSegment) &&
+        (g_completedTransitions % kTransitionsPerLap == 0U))
+    {
+        g_completedLaps++;
+        if (g_completedLaps >= g_targetLaps)
+        {
+            return 1U;
+        }
+    }
+
+    return 0U;
 }

@@ -98,7 +98,7 @@ static void System_Init(void)
     PID_Init(&anglePID, 1.2f, 0.1f, 1.2f, 70, -70, 80, 0.7f);
 
     /* 让 task.c 接管 K0 对应的运行状态机 */
-    K0_RunTask_Init();
+    K0_RunTask_Init(1);
 }
 
 static void OLED_ShowDebug(void)

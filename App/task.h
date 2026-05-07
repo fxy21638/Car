@@ -8,7 +8,7 @@ extern "C"
 {
 #endif
 
-    void K0_RunTask_Init(void);
+    void K0_RunTask_Init(uint8_t lapCount);
     void K0_RunTask(void);
     void ObstacleAvoidance_Task(unsigned long nowMs);
     void turn_Task(void);
