@@ -1,11 +1,19 @@
 #include "Uart.h"
 #include "ti_msp_dl_config.h"
+#include "PID.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "Delay.h"
 
 extern int PWMleft, PWMright;
 extern int targetLeftSpeed, targetRightSpeed;
 extern int leftEncSpeed, rightEncSpeed;
+
+#define UART_RX_LINE_MAX 64
+
+static char g_uartRxLine[UART_RX_LINE_MAX];
+static uint32_t g_uartRxLen = 0;
 
 static void Uart_TxBlocking(uint8_t byte)
 {

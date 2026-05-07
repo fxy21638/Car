@@ -8,6 +8,7 @@ extern "C"
 {
 #endif
 
+    void SpeedLoop_Task(void);
     void ObstacleAvoidance_Task(unsigned long nowMs);
     void turn_Task(void);
 

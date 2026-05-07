@@ -6,6 +6,8 @@
 #include "Ultrasonic.h"
 #include <math.h>
 
+void SpeedLoop_Task(void);
+
 /* 从 empty.c 拆出的任务内部状态。 */
 typedef enum
 {
@@ -55,7 +57,7 @@ void ObstacleAvoidance_Task(unsigned long nowMs)
         }
         else
         {
-            PID_control();
+            SpeedLoop_Task();
         }
         break;
 
@@ -121,7 +123,7 @@ void turn_Task(void)
         }
         else
         {
-            PID_control();
+            SpeedLoop_Task();
         }
         break;
 
@@ -163,4 +165,9 @@ void turn_Task(void)
         }
         break;
     }
+}
+
+void SpeedLoop_Task(void)
+{
+    PID_control();
 }

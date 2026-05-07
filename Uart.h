@@ -8,6 +8,7 @@ void Uart_SendBytes(const uint8_t *data, uint32_t len);
 void Uart_SendString(const char *s);
 void Uart_SendInt(int num);
 void VOFA_SendSpeedLoop(void);
+void Uart_ProcessRxCommands(void);
 void show_dis(void);
 
 #endif 

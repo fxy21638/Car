@@ -77,8 +77,8 @@ void Test_PID_Parameters(void)
     */
 
     /* 当前启用的参数组 */
-    PID_Init(&leftPID, 1.5f, 0.01f, 3.0f, 80, -80, 60, 0.2f);
-    PID_Init(&rightPID, 1.5f, 0.01f, 3.0f, 80, -80, 60, 0.2f);
+    PID_Init(&leftPID, 2.8f, 0.16f, 0.0f, 100, -100, 350, 0.2f);
+    PID_Init(&rightPID, 2.8f, 0.16f, 0.0f, 100, -100, 350, 0.2f);
 }
 
 int main(void)
@@ -91,29 +91,9 @@ int main(void)
      * 用 fake_speed 模拟编码器反馈，方便先验证速度环与 OLED 显示。 */
     while (1)
     {
-        static int fake_speed = 0;
-
-        fake_speed += 2;
-        if (fake_speed > 80)
-        {
-            fake_speed = 80;
-        }
-
-        leftEncSpeed = fake_speed;
-        rightEncSpeed = fake_speed;
-
-        PID_control();
-
-        OLED_Clear();
-        OLED_ShowString(0, 0, "PID Control", OLED_8X16);
-        OLED_ShowString(0, 16, "Target: 60", OLED_6X8);
-        OLED_ShowString(0, 24, "Actual:", OLED_6X8);
-        OLED_ShowNum(60, 24, fake_speed, 2, OLED_6X8);
-        OLED_ShowString(0, 32, "Output:", OLED_6X8);
-        OLED_ShowSignedNum(60, 32, (int) leftPID.output, 3, OLED_6X8);
-        OLED_Update();
-
-        Delay_ms(100);
+        SpeedLoop_Task();
+        VOFA_SendSpeedLoop();
+        Delay_ms(10);
     }
 }
 
@@ -294,8 +274,8 @@ void System_Init(void)
     }
 
     /* 控制器默认参数 */
-    PID_Init(&leftPID, 1.5f, 0.01f, 3.0f, 80, -80, 60, 0.2f);
-    PID_Init(&rightPID, 1.5f, 0.01f, 3.0f, 80, -80, 60, 0.2f);
+    PID_Init(&leftPID, 2.8f, 0.16f, 0.0f, 100, -100, 350, 0.2f);
+    PID_Init(&rightPID, 2.8f, 0.16f, 0.0f, 100, -100, 350, 0.2f);
     PID_Init(&steerPID, 0.75f, 0.03f, 0.9f, 80, -80, 60, 0.7f);
     PID_Init(&anglePID, 1.2f, 0.1f, 1.2f, 70, -70, 80, 0.7f);
 }

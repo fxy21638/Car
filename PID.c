@@ -14,6 +14,7 @@ extern int leftEncSpeed, rightEncSpeed;
 extern int is_lost;
 extern float angle_err;
 extern float yaw;
+static int g_speedTarget = 60;
 
 void PID_Init(PID_t *pid, float Kp, float Ki, float Kd,
               float output_max, float output_min, float sum_max,
@@ -93,8 +94,8 @@ void PID_Reset(PID_t *pid)
 void PID_control(void)
 {
     /* 当前示例只跑纯速度环，不叠加循迹转向控制。 */
-    targetLeftSpeed = 60;
-    targetRightSpeed = 60;
+    targetLeftSpeed = g_speedTarget;
+    targetRightSpeed = g_speedTarget;
 
     leftPID.target = targetLeftSpeed;
     rightPID.target = targetRightSpeed;
@@ -107,6 +108,28 @@ void PID_control(void)
     PWMleft = leftPID.output;
     PWMright = rightPID.output;
     Set_PWM(PWMleft, PWMright);
+}
+
+void PID_SetSpeedTarget(int targetSpeed)
+{
+    g_speedTarget = targetSpeed;
+}
+
+int PID_GetSpeedTarget(void)
+{
+    return g_speedTarget;
+}
+
+void PID_SetSpeedTunings(float kp, float ki, float kd)
+{
+    leftPID.Kp = kp;
+    leftPID.Ki = ki;
+    leftPID.Kd = kd;
+    rightPID.Kp = kp;
+    rightPID.Ki = ki;
+    rightPID.Kd = kd;
+    PID_Reset(&leftPID);
+    PID_Reset(&rightPID);
 }
 
 float Angle_Control(float targetYawDeg, float actualYawDeg)
