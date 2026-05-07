@@ -22,3 +22,5 @@ keil/*.sbr
 # Keil user-specific files
 keil/*.uvguix.*
 keil/*.uvoptx
+keil/keil-build-viewer.log
+keil/keil-build-viewer-record.txt
