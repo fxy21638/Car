@@ -1,12 +1,12 @@
 #include "task.h"
-#include "PID.h"
-#include "Motor.h"
-#include "Ultrasonic.h"
-#include "MPU6050_MSPM0.h"
 #include "Delay.h"
+#include "Motor.h"
+#include "MPU6050_MSPM0.h"
+#include "PID.h"
+#include "Ultrasonic.h"
 #include <math.h>
 
-/* 状态枚举与模块内部状态变量 (从 empty.c 移出) */
+/* 从 empty.c 拆出的任务内部状态。 */
 typedef enum
 {
     AVOID_IDLE = 0,
@@ -24,14 +24,12 @@ typedef enum
     TURN_LEFT,
     TURN_FORWARD,
     TURN_RIGHT
-} turnStage;
+} TurnStage;
 
 static AvoidStage g_avoidStage = AVOID_IDLE;
 static unsigned long g_avoidStartMs = 0;
+static TurnStage g_turnStage = TURN_IDLE;
 
-static turnStage g_turnStage = TURN_IDLE;
-
-/* 外部变量/函数引用（定义在 empty.c / 其它模块） */
 extern int16_t dist;
 extern int is_lost;
 extern float yaw;
@@ -42,7 +40,8 @@ extern volatile unsigned long tick_ms;
 extern void PID_control(void);
 extern void motor_agle_control(float relAngleDeg);
 
-/* 简单避障任务状态机 */
+/* 简单定时避障状态机：
+ * 停车 -> 原地右转 -> 前进绕行 -> 左转回线。 */
 void ObstacleAvoidance_Task(unsigned long nowMs)
 {
     switch (g_avoidStage)
@@ -106,10 +105,10 @@ void ObstacleAvoidance_Task(unsigned long nowMs)
     }
 }
 
-/* 转向任务状态机 */
+/* 丢线恢复状态机：
+ * 先记录当前航向，再按固定相对角度转向，直到重新找到线。 */
 void turn_Task(void)
 {
-    unsigned long now = tick_ms; /* tick_ms 在工程全局可用 */
     int turn_angle = 30;
 
     switch (g_turnStage)
@@ -139,7 +138,6 @@ void turn_Task(void)
         break;
 
     case TURN_LEFT:
-        // 目标为相对 +30 度
         if (fabsf(yaw - (origin_yaw + turn_angle)) <= 5.0f)
         {
             g_turnStage = TURN_FORWARD;

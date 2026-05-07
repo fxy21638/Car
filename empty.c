@@ -1,58 +1,31 @@
 /*
  * Copyright (c) 2021, Texas Instruments Incorporated
  * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * *  Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *
- * *  Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- *
- * *  Neither the name of Texas Instruments Incorporated nor the names of
- *    its contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
- * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
- * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "ti_msp_dl_config.h"
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
-#include "Motor.h"
-#include "Sensor.h"
+#include "Delay.h"
 #include "Encoder.h"
+#include "Key.h"
+#include "Motor.h"
+#include "MPU6050_MSPM0.h"
 #include "OLED.h"
 #include "PID.h"
-#include "Delay.h"
-#include "MPU6050_MSPM0.h"
-#include "Key.h"
-#include "Ultrasonic.h"
-#include "Uart.h"
+#include "Sensor.h"
 #include "task.h"
+#include "Uart.h"
+#include "Ultrasonic.h"
 
-// 全局 PID
+/* 全局控制状态 */
 PID_t leftPID;
 PID_t rightPID;
 PID_t steerPID;
 PID_t anglePID;
 
-int BASE_SPEED = 60; // 基础速度
+int BASE_SPEED = 60;
 int linePos = 0;
 int lastSumPos = 0;
 int is_lost = 0;
@@ -66,7 +39,7 @@ float angle_err;
 char sensorStr[9];
 
 MPU6050_Handle gImu;
-uint8_t gMPU6050_OK = 0; /* 1 = MPU6050 init success, 0 = failed */
+uint8_t gMPU6050_OK = 0;
 
 typedef enum
 {
@@ -87,69 +60,66 @@ void OlED_show(void);
 void System_Init(void);
 static void Handle_Keys(void);
 
-// 修改PID参数进行实验
+/* PID 参数实验入口。
+ * 保留多组参数模板，当前只启用一组，便于现场快速切换调参。 */
 void Test_PID_Parameters(void)
 {
-    // 实验1: 只用P控制（Ki=0, Kd=0）
     /*
+    // P only
     PID_Init(&leftPID, 2.0f, 0.0f, 0.0f, 80, -80, 60, 0.2f);
     PID_Init(&rightPID, 2.0f, 0.0f, 0.0f, 80, -80, 60, 0.2f);
     */
-    
-    // 实验2: P+I控制（加入积分消除静差）
+
     /*
+    // PI
     PID_Init(&leftPID, 1.5f, 0.02f, 0.0f, 80, -80, 60, 0.2f);
     PID_Init(&rightPID, 1.5f, 0.02f, 0.0f, 80, -80, 60, 0.2f);
     */
-    
-    // 实验3: 完整PID控制（当前项目参数）
+
+    /* 当前启用的参数组 */
     PID_Init(&leftPID, 1.5f, 0.01f, 3.0f, 80, -80, 60, 0.2f);
     PID_Init(&rightPID, 1.5f, 0.01f, 3.0f, 80, -80, 60, 0.2f);
 }
 
 int main(void)
 {
-    // 初始化 SysConfig
     SYSCFG_DL_init();
-
-    // 系统硬件初始化
     System_Init();
-    
-    // 初始化PID参数
     Test_PID_Parameters();
 
-    // PID控制演示
+    /* 当前主循环不是整车最终逻辑，而是 PID 调试演示：
+     * 用 fake_speed 模拟编码器反馈，方便先验证速度环与 OLED 显示。 */
     while (1)
     {
-        // 模拟编码器速度（实际项目中由Encoder模块提供）
-        // 这里为了演示，我们用简单的方式模拟
         static int fake_speed = 0;
-        fake_speed += 2; // 模拟加速过程
-        if (fake_speed > 80) fake_speed = 80;
-        
+
+        fake_speed += 2;
+        if (fake_speed > 80)
+        {
+            fake_speed = 80;
+        }
+
         leftEncSpeed = fake_speed;
         rightEncSpeed = fake_speed;
-        
-        // 执行PID控制
+
         PID_control();
-        
-        // 在OLED上显示PID信息
+
         OLED_Clear();
         OLED_ShowString(0, 0, "PID Control", OLED_8X16);
         OLED_ShowString(0, 16, "Target: 60", OLED_6X8);
         OLED_ShowString(0, 24, "Actual:", OLED_6X8);
         OLED_ShowNum(60, 24, fake_speed, 2, OLED_6X8);
         OLED_ShowString(0, 32, "Output:", OLED_6X8);
-        OLED_ShowSignedNum(60, 32, (int)leftPID.output, 3, OLED_6X8);
+        OLED_ShowSignedNum(60, 32, (int) leftPID.output, 3, OLED_6X8);
         OLED_Update();
-        
+
         Delay_ms(100);
     }
 }
 
 void OlED_show(void)
 {
-    /* OLED 屏幕刷新与菜单显示 */
+    /* 根据菜单状态刷新 OLED 页面。 */
     OLED_Clear();
 
     if (g_menuState == MENU_MAIN)
@@ -170,16 +140,8 @@ void OlED_show(void)
     else if (g_menuState == MENU_RUNNING)
     {
         OLED_ShowString(0, 0, "=== RUNNING ===", OLED_8X16);
-        /*
-        OLED_ShowString(0, 16, "Dis:", OLED_8X16);
-        OLED_ShowSignedNum(40, 16, dist, 6, OLED_8X16);
-        */
         OLED_ShowString(0, 16, "yaw:", OLED_8X16);
         OLED_ShowSignedNum(40, 16, yaw, 6, OLED_8X16);
-        /*
-        OLED_ShowString(0, 32, "Laps:", OLED_8X16);
-        OLED_ShowSignedNum(48, 32, g_targetCircles, 2, OLED_8X16);
-        */
         OLED_ShowString(0, 32, "yaw_o:", OLED_8X16);
         OLED_ShowSignedNum(48, 32, origin_yaw, 2, OLED_8X16);
         OLED_ShowString(0, 48, "K1:Stop", OLED_8X16);
@@ -187,7 +149,8 @@ void OlED_show(void)
     else if (g_menuState == MENU_AVOID)
     {
         OLED_ShowString(0, 0, "=== AVOID ===", OLED_8X16);
-        OLED_ShowString(0, 16, g_avoidEnable ? "Status: ON " : "Status: OFF", OLED_8X16);
+        OLED_ShowString(0, 16, g_avoidEnable ? "Status: ON " : "Status: OFF",
+                        OLED_8X16);
         OLED_ShowString(0, 32, "Dis:", OLED_8X16);
         OLED_ShowSignedNum(32, 32, dist, 4, OLED_8X16);
         OLED_ShowString(0, 48, "K2/3:Tog K4:Back", OLED_8X16);
@@ -202,10 +165,13 @@ void OlED_show(void)
         }
         else
         {
+            int16_t yaw_int = (int16_t) yaw;
+
             OLED_ShowString(0, 16, "Yaw(deg):", OLED_8X16);
-            int16_t yaw_int = (int16_t)yaw;
             OLED_ShowSignedNum(90, 16, yaw_int, 4, OLED_8X16);
-            OLED_ShowString(0, 32, g_turnEnable ? "Status: ON " : "Status: OFF", OLED_8X16);
+            OLED_ShowString(0, 32,
+                            g_turnEnable ? "Status: ON " : "Status: OFF",
+                            OLED_8X16);
             OLED_ShowString(0, 48, "K2/3:Tog K4:Back", OLED_8X16);
         }
         OLED_ShowString(0, 48, "K4:Back", OLED_8X16);
@@ -221,12 +187,12 @@ static void Handle_Keys(void)
     uint8_t k3 = Key_GetPressed(2);
     uint8_t k4 = Key_GetPressed(3);
 
-    // K1: Emergency Stop / Back to Main Menu
+    /* K1 统一作为急停 / 返回主菜单。 */
     if (k1)
     {
         g_menuState = MENU_MAIN;
         g_running = 0;
-        Set_PWM(0, 0); // Stop motors
+        Set_PWM(0, 0);
     }
     else if (g_menuState == MENU_MAIN)
     {
@@ -261,12 +227,16 @@ static void Handle_Keys(void)
         {
             g_targetCircles++;
             if (g_targetCircles > 99)
+            {
                 g_targetCircles = 99;
+            }
         }
         else if (k3)
         {
             if (g_targetCircles > 1)
+            {
                 g_targetCircles--;
+            }
         }
         else if (k4)
         {
@@ -286,63 +256,46 @@ static void Handle_Keys(void)
     }
 }
 
-// 硬件初始化
 void System_Init(void)
 {
-    /* 1. 系统时钟初始化 */
+    /* 基础时基与底层模块初始化 */
     SysTick_Init();
-
-    /* 2. 电机初始化 */
     Motor_Init();
-
-    /* 3. 传感器初始化 */
     Sensor_Init();
 
-    /* 4. NVIC 中断优先级配置 */
-    NVIC_SetPriority(GPIOA_INT_IRQn, 0); // GPIOA 中断优先级
-    NVIC_SetPriority(TIMA0_INT_IRQn, 1); // 定时器中断优先级
-
-    /* 5. 清除 pending 中断 */
+    /* 中断优先级与使能 */
+    NVIC_SetPriority(GPIOA_INT_IRQn, 0);
+    NVIC_SetPriority(TIMA0_INT_IRQn, 1);
     NVIC_ClearPendingIRQ(GPIOA_INT_IRQn);
     NVIC_ClearPendingIRQ(TIMA0_INT_IRQn);
-
-    /* 6. 使能中断 */
     NVIC_EnableIRQ(GPIOA_INT_IRQn);
     NVIC_EnableIRQ(TIMA0_INT_IRQn);
 
-    /* 7. 编码器初始化 */
+    /* 应用层实际使用到的外设初始化 */
     Encoder_Init();
-
-    /* 8. 按键初始化 */
     Key_Init();
-
-    /* 9. 超声波初始化 */
     Ultrasonic_Init();
-
-    /* 10. 全局中断使能 */
     __enable_irq();
-
-    /* 11. OLED 显示初始化 */
     OLED_Init();
 
-    /* 12. MPU6050 IMU 初始化 + 状态校准 */
+    /* IMU 初始化与零偏标定 */
     if (MPU6050_Init(&gImu))
     {
         gMPU6050_OK = 1;
-        gImu.samplePeriodMs = 50; // 采样周期 50ms
+        gImu.samplePeriodMs = 50;
         if (!MPU6050_CalibrateGyroZ(&gImu, 200u, 5u))
         {
-            gMPU6050_OK = 0; // 校准失败
+            gMPU6050_OK = 0;
         }
     }
     else
     {
-        gMPU6050_OK = 0; // 初始化失败
+        gMPU6050_OK = 0;
     }
 
-    /* 13. PID 控制器初始化 (handle, Kp, Ki, Kd, maxOut, minOut, iMax, deadzone) */
-    PID_Init(&leftPID, 1.5f, 0.01f, 3.0f, 80, -80, 60, 0.2f);   // 左轮速度 PID
-    PID_Init(&rightPID, 1.5f, 0.01f, 3.0f, 80, -80, 60, 0.2f);  // 右轮速度 PID
-    PID_Init(&steerPID, 0.75f, 0.03f, 0.9f, 80, -80, 60, 0.7f); // 转向 PID
-    PID_Init(&anglePID, 1.2f, 0.1f, 1.2f, 70, -70, 80, 0.7f);   // 转向 PID
+    /* 控制器默认参数 */
+    PID_Init(&leftPID, 1.5f, 0.01f, 3.0f, 80, -80, 60, 0.2f);
+    PID_Init(&rightPID, 1.5f, 0.01f, 3.0f, 80, -80, 60, 0.2f);
+    PID_Init(&steerPID, 0.75f, 0.03f, 0.9f, 80, -80, 60, 0.7f);
+    PID_Init(&anglePID, 1.2f, 0.1f, 1.2f, 70, -70, 80, 0.7f);
 }

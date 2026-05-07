@@ -1,21 +1,19 @@
 #include "ti_msp_dl_config.h"
 #include "Encoder.h"
 
-// 全局变量（与官方例程格式一致）
-volatile int32_t Get_Encoder_countA = 0; // 左轮实时计数
-volatile int32_t Get_Encoder_countB = 0; // 右轮实时计数
-volatile int32_t encoderA_cnt = 0;       // 10ms 速度值
+volatile int32_t Get_Encoder_countA = 0;
+volatile int32_t Get_Encoder_countB = 0;
+volatile int32_t encoderA_cnt = 0;
 volatile int32_t encoderB_cnt = 0;
 
-extern int leftEncSpeed; // 给主程序PID用
+extern int leftEncSpeed;
 extern int rightEncSpeed;
 
 #define PULSE_PER_CIRCLE 26666
 
-// 编码器初始化
 void Encoder_Init(void)
 {
-    // 清空计数
+    /* 清零计数与测速结果，避免上电后残留脉冲影响控制。 */
     Get_Encoder_countA = 0;
     Get_Encoder_countB = 0;
     encoderA_cnt = 0;
@@ -23,13 +21,12 @@ void Encoder_Init(void)
     leftEncSpeed = 0;
     rightEncSpeed = 0;
 
-    // 使能编码器引脚中断（关键！）
+    /* 使能 A/B 相对应的 GPIO 中断。 */
     DL_GPIO_enableInterrupt(GPIOA,
                             ENCODERA_E1A_PIN | ENCODERA_E1B_PIN |
                                 ENCODERB_E2A_PIN | ENCODERB_E2B_PIN);
 }
 
-// 重置距离
 void Encoder_ResetDistance(void)
 {
     Get_Encoder_countA = 0;
@@ -38,19 +35,16 @@ void Encoder_ResetDistance(void)
     rightEncSpeed = 0;
 }
 
-// 获取圈数
 float Get_Current_Circles(void)
 {
     float avg = (Get_Encoder_countA + Get_Encoder_countB) / 2.0f;
     return avg / PULSE_PER_CIRCLE;
 }
 
-// 10ms 定时器中断（与官方例程完全一致）
 void TIMA0_IRQHandler(void)
 {
-    /* 读取并判断本次中断源（IIDX）。原来的写法 `if(DL_TIMER_IIDX_ZERO)` 是常量判断，
-     * 逻辑上不正确。
-     */
+    /* 仅处理定时器归零事件。
+     * 每 10ms 把累计脉冲换算为速度，再把累计值清零开始下一周期统计。 */
     if (DL_TimerA_getPendingInterrupt(TIMER_0_INST) == DL_TIMER_IIDX_ZERO)
     {
         encoderA_cnt = Get_Encoder_countA;
@@ -66,17 +60,14 @@ void TIMA0_IRQHandler(void)
     DL_TimerA_clearInterruptStatus(TIMER_0_INST, DL_TIMER_INTERRUPT_ZERO_EVENT);
 }
 
-// GPIOA 组中断处理（编码器正交信号）
 void GROUP1_IRQHandler(void)
 {
-    uint32_t gpio_interrupt = DL_GPIO_getEnabledInterruptStatus(GPIOA,
-                                                                ENCODERA_E1A_PIN | ENCODERA_E1B_PIN |
-                                                                    ENCODERB_E2A_PIN | ENCODERB_E2B_PIN);
+    uint32_t gpio_interrupt = DL_GPIO_getEnabledInterruptStatus(
+        GPIOA, ENCODERA_E1A_PIN | ENCODERA_E1B_PIN |
+                   ENCODERB_E2A_PIN | ENCODERB_E2B_PIN);
 
-    // ================== 左编码器 A ==================
-    /* 注意：同一轮的 A/B 相位可能在一次 ISR 前后都产生中断并同时置位。
-     * 这里不能用 else if，否则会漏处理其中一路。
-     */
+    /* 不能写成 else-if。
+     * 同一次中断中，AB 两相都可能同时挂起，必须分别处理。 */
     if ((gpio_interrupt & ENCODERA_E1A_PIN) == ENCODERA_E1A_PIN)
     {
         if (!DL_GPIO_readPins(GPIOA, ENCODERA_E1B_PIN))
@@ -92,7 +83,6 @@ void GROUP1_IRQHandler(void)
             Get_Encoder_countA--;
     }
 
-    // ================== 右编码器 B ==================
     if ((gpio_interrupt & ENCODERB_E2A_PIN) == ENCODERB_E2A_PIN)
     {
         if (!DL_GPIO_readPins(GPIOA, ENCODERB_E2B_PIN))
