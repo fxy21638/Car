@@ -1,2 +1,24 @@
 Debug/
 .settings/
+Event.dot
+
+# Keil build output
+keil/Objects/
+keil/Listings/
+keil/*.axf
+keil/*.bin
+keil/*.crf
+keil/*.d
+keil/*.dep
+keil/*.hex
+keil/*.htm
+keil/*.iex
+keil/*.lnp
+keil/*.map
+keil/*.o
+keil/*.obj
+keil/*.sbr
+
+# Keil user-specific files
+keil/*.uvguix.*
+keil/*.uvoptx
