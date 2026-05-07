@@ -87,6 +87,26 @@ void OlED_show(void);
 void System_Init(void);
 static void Handle_Keys(void);
 
+// 修改PID参数进行实验
+void Test_PID_Parameters(void)
+{
+    // 实验1: 只用P控制（Ki=0, Kd=0）
+    /*
+    PID_Init(&leftPID, 2.0f, 0.0f, 0.0f, 80, -80, 60, 0.2f);
+    PID_Init(&rightPID, 2.0f, 0.0f, 0.0f, 80, -80, 60, 0.2f);
+    */
+    
+    // 实验2: P+I控制（加入积分消除静差）
+    /*
+    PID_Init(&leftPID, 1.5f, 0.02f, 0.0f, 80, -80, 60, 0.2f);
+    PID_Init(&rightPID, 1.5f, 0.02f, 0.0f, 80, -80, 60, 0.2f);
+    */
+    
+    // 实验3: 完整PID控制（当前项目参数）
+    PID_Init(&leftPID, 1.5f, 0.01f, 3.0f, 80, -80, 60, 0.2f);
+    PID_Init(&rightPID, 1.5f, 0.01f, 3.0f, 80, -80, 60, 0.2f);
+}
+
 int main(void)
 {
     // 初始化 SysConfig
@@ -94,69 +114,36 @@ int main(void)
 
     // 系统硬件初始化
     System_Init();
+    
+    // 初始化PID参数
+    Test_PID_Parameters();
 
+    // PID控制演示
     while (1)
     {
-
-        // 读取循迹传感器位置
-        // linePos = Sensor_GetQuantizedPos();
-
-        // PID_control();
-
-        /*
-        // 更新超声波距离数据（如果避障功能开启）
-        if (g_avoidEnable)
-            dist = Read_Ultrasonic();
-
-        // 更新 MPU6050 Yaw（如果转向功能开启）
-        if (g_turnEnable)
-        {
-            MPU6050_UpdateYaw(&gImu, tick_ms);
-            yaw = MPU6050_GetYawDeg(&gImu);
-        }
-
-        Handle_Keys();
-
-        // Example: test turn to absolute 90 degrees (uncomment to enable)
-        // TurnToAngle(90.0f);
-
-        if (g_running)
-        {
-            if (Get_Current_Circles() >= g_targetCircles)
-            {
-                g_running = 0;
-                Set_PWM(0, 0); // 达到目标圈数，停止
-            }
-            else
-            {
-                if (g_avoidEnable)
-                {
-                    ObstacleAvoidance_Task(tick_ms);
-                }
-                else if (g_turnEnable)
-                {
-                    turn_Task();
-                    // TurnToAngle(30);
-                }
-                else
-                {
-                    PID_control();
-                }
-            }
-        }
-        else
-        {
-            Set_PWM(0, 0); // 停止电机
-        }
-
-        OlED_show();
-        */
-
-        // Uart_SendString("car is running\r\n");
-
-        VOFA_SendSpeedLoop();
-
-        Set_PWM(50, 50);
+        // 模拟编码器速度（实际项目中由Encoder模块提供）
+        // 这里为了演示，我们用简单的方式模拟
+        static int fake_speed = 0;
+        fake_speed += 2; // 模拟加速过程
+        if (fake_speed > 80) fake_speed = 80;
+        
+        leftEncSpeed = fake_speed;
+        rightEncSpeed = fake_speed;
+        
+        // 执行PID控制
+        PID_control();
+        
+        // 在OLED上显示PID信息
+        OLED_Clear();
+        OLED_ShowString(0, 0, "PID Control", OLED_8X16);
+        OLED_ShowString(0, 16, "Target: 60", OLED_6X8);
+        OLED_ShowString(0, 24, "Actual:", OLED_6X8);
+        OLED_ShowNum(60, 24, fake_speed, 2, OLED_6X8);
+        OLED_ShowString(0, 32, "Output:", OLED_6X8);
+        OLED_ShowSignedNum(60, 32, (int)leftPID.output, 3, OLED_6X8);
+        OLED_Update();
+        
+        Delay_ms(100);
     }
 }
 

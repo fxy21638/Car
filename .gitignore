@@ -1,21 +1,2 @@
 Debug/
 .settings/
-
-# Keil 编译和用户文件
-keil/Objects/
-*.uvguix.*
-*.dep
-*.lnp
-*.build_log.htm
-
-# 中间文件与无用文件
-*.o
-*.d
-*.obj
-*.axf
-*.map
-*.hex
-*.bin
-*.elf
-*.htm
-*.bak
