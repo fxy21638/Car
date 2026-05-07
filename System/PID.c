@@ -11,7 +11,6 @@ extern PID_t anglePID;
 extern int PWMleft, PWMright;
 extern int targetLeftSpeed, targetRightSpeed;
 extern int leftEncSpeed, rightEncSpeed;
-extern int leftSpeedTrim;
 extern int is_lost;
 extern float yaw;
 
@@ -88,7 +87,7 @@ void PID_control(void)
     steerPID.actual = steerActual;
     PID_Update(&steerPID);
 
-    targetLeftSpeed = BASE_SPEED + leftSpeedTrim + (int)steerPID.output;
+    targetLeftSpeed = BASE_SPEED + (int)steerPID.output;
     targetRightSpeed = BASE_SPEED - (int)steerPID.output;
 
     leftPID.target = targetLeftSpeed;
