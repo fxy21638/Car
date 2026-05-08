@@ -436,9 +436,29 @@
               <FilePath>..\Sensor.c</FilePath>
             </File>
             <File>
-              <FileName>task.c</FileName>
+              <FileName>speed_loop.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\task.c</FilePath>
+              <FilePath>..\speed_loop.c</FilePath>
+            </File>
+            <File>
+              <FileName>avoid_task.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\avoid_task.c</FilePath>
+            </File>
+            <File>
+              <FileName>turn_task.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\turn_task.c</FilePath>
+            </File>
+            <File>
+              <FileName>h24_task.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\h24_task.c</FilePath>
+            </File>
+            <File>
+              <FileName>pid_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\pid_test.c</FilePath>
             </File>
             <File>
               <FileName>Uart.c</FileName>

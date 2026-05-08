@@ -12,7 +12,6 @@ extern int PWMleft, PWMright;
 extern int targetLeftSpeed, targetRightSpeed;
 extern int leftEncSpeed, rightEncSpeed;
 extern int is_lost;
-extern float angle_err;
 extern float yaw;
 static int g_speedTarget = 60;
 

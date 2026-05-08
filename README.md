@@ -22,7 +22,7 @@
 
 - `empty.c` 当前 `main()` 运行的是一个 `PID` 演示循环，不是完整的小车自动循迹主循环。
 - 演示循环里使用 `fake_speed` 模拟编码器速度，并在 OLED 上显示 PID 输出。
-- `task.c`、按键菜单、避障逻辑、转向逻辑、超声和 MPU6050 的相关代码已经存在，但当前 `main()` 没有把它们组织成完整运行态。
+- `H24`、`PID`、避障、转向、超声和 MPU6050 的相关代码已经存在，当前主循环通过“一行任务入口”方式选择运行任务。
 
 也就是说：
 
@@ -59,7 +59,11 @@ SysConfig 生成文件：
 - [Encoder.c](C:/Users/YunaCelisse/Desktop/Software/Car/Encoder.c)：编码器中断计数与测速
 - [Sensor.c](C:/Users/YunaCelisse/Desktop/Software/Car/Sensor.c)：8 路循迹传感器读取
 - [PID.c](C:/Users/YunaCelisse/Desktop/Software/Car/PID.c)：PID 控制器与角度控制
-- [task.c](C:/Users/YunaCelisse/Desktop/Software/Car/task.c)：避障与转向任务状态机
+- [speed_loop.c](C:/Users/YunaCelisse/Desktop/Software/Car/speed_loop.c)：速度环任务入口
+- [avoid_task.c](C:/Users/YunaCelisse/Desktop/Software/Car/avoid_task.c)：避障任务状态机
+- [turn_task.c](C:/Users/YunaCelisse/Desktop/Software/Car/turn_task.c)：转向找线任务状态机
+- [h24_task.c](C:/Users/YunaCelisse/Desktop/Software/Car/h24_task.c)：H24 任务
+- [pid_test.c](C:/Users/YunaCelisse/Desktop/Software/Car/pid_test.c)：PID 测试任务
 - [OLED.c](C:/Users/YunaCelisse/Desktop/Software/Car/OLED.c)：软件 I2C OLED 驱动
 - [MPU6050_MSPM0.c](C:/Users/YunaCelisse/Desktop/Software/Car/MPU6050_MSPM0.c)：软件 I2C MPU6050 驱动
 - [Ultrasonic.c](C:/Users/YunaCelisse/Desktop/Software/Car/Ultrasonic.c)：超声波测距
@@ -385,7 +389,7 @@ OLED 当前使用软件 I2C，物理接线如下：
 
 - `Read_Ultrasonic()` 返回距离值。
 - `is_obstacle()` 以 `0 < dist < 200` 作为障碍物判定。
-- `task.c` 中有简单避障状态机。
+- `avoid_task.c` 中有简单避障状态机。
 
 ### 7.6 菜单与任务代码
 

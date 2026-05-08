@@ -1,5 +1,5 @@
-#ifndef __TASK_H
-#define __TASK_H
+#ifndef __SPEED_LOOP_H
+#define __SPEED_LOOP_H
 
 #include "ti_msp_dl_config.h"
 
@@ -9,11 +9,9 @@ extern "C"
 #endif
 
     void SpeedLoop_Task(void);
-    void ObstacleAvoidance_Task(unsigned long nowMs);
-    void turn_Task(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // __TASK_H
+#endif // __SPEED_LOOP_H
