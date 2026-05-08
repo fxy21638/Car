@@ -54,22 +54,22 @@ SysConfig 生成文件：
 
 ## 4. 目录说明
 
-- [empty.c](C:/Users/YunaCelisse/Desktop/Software/Car/empty.c)：主程序入口，当前为 PID 演示
-- [Motor.c](C:/Users/YunaCelisse/Desktop/Software/Car/Motor.c)：电机方向与 PWM 输出
-- [Encoder.c](C:/Users/YunaCelisse/Desktop/Software/Car/Encoder.c)：编码器中断计数与测速
-- [Sensor.c](C:/Users/YunaCelisse/Desktop/Software/Car/Sensor.c)：8 路循迹传感器读取
-- [PID.c](C:/Users/YunaCelisse/Desktop/Software/Car/PID.c)：PID 控制器与角度控制
-- [speed_loop.c](C:/Users/YunaCelisse/Desktop/Software/Car/speed_loop.c)：速度环任务入口
-- [avoid_task.c](C:/Users/YunaCelisse/Desktop/Software/Car/avoid_task.c)：避障任务状态机
-- [turn_task.c](C:/Users/YunaCelisse/Desktop/Software/Car/turn_task.c)：转向找线任务状态机
-- [h24_task.c](C:/Users/YunaCelisse/Desktop/Software/Car/h24_task.c)：H24 任务
-- [pid_test.c](C:/Users/YunaCelisse/Desktop/Software/Car/pid_test.c)：PID 测试任务
-- [OLED.c](C:/Users/YunaCelisse/Desktop/Software/Car/OLED.c)：软件 I2C OLED 驱动
-- [MPU6050_MSPM0.c](C:/Users/YunaCelisse/Desktop/Software/Car/MPU6050_MSPM0.c)：软件 I2C MPU6050 驱动
-- [Ultrasonic.c](C:/Users/YunaCelisse/Desktop/Software/Car/Ultrasonic.c)：超声波测距
-- [Key.c](C:/Users/YunaCelisse/Desktop/Software/Car/Key.c)：按键消抖与读取
-- [Uart.c](C:/Users/YunaCelisse/Desktop/Software/Car/Uart.c)：串口输出
-- [Delay.c](C:/Users/YunaCelisse/Desktop/Software/Car/Delay.c)：SysTick 毫秒时基
+- [empty.c](/c:/Users/YunaCelisse/Desktop/Software/Car/src/core/empty.c)：主程序入口，当前为 PID 演示
+- [Motor.c](/c:/Users/YunaCelisse/Desktop/Software/Car/src/drivers/Motor.c)：电机方向与 PWM 输出
+- [Encoder.c](/c:/Users/YunaCelisse/Desktop/Software/Car/src/drivers/Encoder.c)：编码器中断计数与测速
+- [Sensor.c](/c:/Users/YunaCelisse/Desktop/Software/Car/src/drivers/Sensor.c)：8 路循迹传感器读取
+- [PID.c](/c:/Users/YunaCelisse/Desktop/Software/Car/src/drivers/PID.c)：PID 控制器与角度控制
+- [speed_loop.c](/c:/Users/YunaCelisse/Desktop/Software/Car/src/tasks/speed_loop.c)：速度环任务入口
+- [avoid_task.c](/c:/Users/YunaCelisse/Desktop/Software/Car/src/tasks/avoid_task.c)：避障任务状态机
+- [turn_task.c](/c:/Users/YunaCelisse/Desktop/Software/Car/src/tasks/turn_task.c)：转向找线任务状态机
+- [h24_task.c](/c:/Users/YunaCelisse/Desktop/Software/Car/src/tasks/h24_task.c)：H24 任务
+- [pid_test.c](/c:/Users/YunaCelisse/Desktop/Software/Car/src/tasks/pid_test.c)：PID 测试任务
+- [OLED.c](/c:/Users/YunaCelisse/Desktop/Software/Car/src/drivers/OLED.c)：软件 I2C OLED 驱动
+- [MPU6050_MSPM0.c](/c:/Users/YunaCelisse/Desktop/Software/Car/src/drivers/MPU6050_MSPM0.c)：软件 I2C MPU6050 驱动
+- [Ultrasonic.c](/c:/Users/YunaCelisse/Desktop/Software/Car/src/drivers/Ultrasonic.c)：超声波测距
+- [Key.c](/c:/Users/YunaCelisse/Desktop/Software/Car/src/drivers/Key.c)：按键消抖与读取
+- [Uart.c](/c:/Users/YunaCelisse/Desktop/Software/Car/src/drivers/Uart.c)：串口输出
+- [Delay.c](/c:/Users/YunaCelisse/Desktop/Software/Car/src/drivers/Delay.c)：SysTick 毫秒时基
 
 ## 5. 硬件资源与接线详情
 
@@ -159,7 +159,7 @@ SysConfig 生成文件：
 
 说明：
 
-- [Sensor.c](C:/Users/YunaCelisse/Desktop/Software/Car/Sensor.c) 中 `GPIO_ReadPin()` 对输入做了反相处理。
+- [Sensor.c](/c:/Users/YunaCelisse/Desktop/Software/Car/src/drivers/Sensor.c) 中 `GPIO_ReadPin()` 对输入做了反相处理。
 - 也就是说，模块输出 `0` 时，软件认为该路“有效”。
 - 如果你的循迹模块是高电平有效，需要修改 `GPIO_ReadPin()` 逻辑。
 
@@ -176,7 +176,7 @@ OLED 当前使用软件 I2C，物理接线如下：
 
 说明：
 
-- [OLED.c](C:/Users/YunaCelisse/Desktop/Software/Car/OLED.c) 明确使用 `PA0/PA1` 作为软件 I2C。
+- [OLED.c](/c:/Users/YunaCelisse/Desktop/Software/Car/src/drivers/OLED.c) 明确使用 `PA0/PA1` 作为软件 I2C。
 - OLED 地址按常见 `0x3C` 设备处理，发送字节为 `0x78`。
 - 如果模块板载上拉较弱，I2C 总线可能不稳定，必要时外接上拉电阻。
 
@@ -189,7 +189,7 @@ OLED 当前使用软件 I2C，物理接线如下：
 - `MPU_SDA -> PA7`
 - `MPU_SCL -> PA6`
 
-但当前 [MPU6050_MSPM0.c](C:/Users/YunaCelisse/Desktop/Software/Car/MPU6050_MSPM0.c) 实际代码并没有使用 `PA6/PA7`，而是复用了 OLED 的软件 I2C 总线：
+但当前 [MPU6050_MSPM0.c](/c:/Users/YunaCelisse/Desktop/Software/Car/src/drivers/MPU6050_MSPM0.c) 实际代码并没有使用 `PA6/PA7`，而是复用了 OLED 的软件 I2C 总线：
 
 - `SDA -> PA0`
 - `SCL -> PA1`
@@ -223,7 +223,7 @@ OLED 当前使用软件 I2C，物理接线如下：
 
 说明：
 
-- [Ultrasonic.c](C:/Users/YunaCelisse/Desktop/Software/Car/Ultrasonic.c) 用 GPIO 触发，`TIMG0` 计时。
+- [Ultrasonic.c](/c:/Users/YunaCelisse/Desktop/Software/Car/src/drivers/Ultrasonic.c) 用 GPIO 触发，`TIMG0` 计时。
 - 如果你的超声模块 `Echo` 输出是 `5V`，而 MSPM0 IO 不耐 5V，需要加分压或电平转换。
 
 ### 5.7 按键
@@ -239,7 +239,7 @@ OLED 当前使用软件 I2C，物理接线如下：
 
 说明：
 
-- [Key.c](C:/Users/YunaCelisse/Desktop/Software/Car/Key.c) 中做了 20ms 消抖。
+- [Key.c](/c:/Users/YunaCelisse/Desktop/Software/Car/src/drivers/Key.c) 中做了 20ms 消抖。
 - 软件按“低电平按下”处理。
 - `Key.c` 文件顶部旧注释里提到的 GPIO 位置已经过时，不应作为接线依据。
 - 按键实际接线以 [ti_msp_dl_config.h](C:/Users/YunaCelisse/Desktop/Software/Car/ti_msp_dl_config.h) 中 `Key_Pins_*` 定义为准。
@@ -330,7 +330,7 @@ OLED 当前使用软件 I2C，物理接线如下：
 
 这部分补充说明“烧录后现在到底跑什么”。
 
-当前 [empty.c](C:/Users/YunaCelisse/Desktop/Software/Car/empty.c) 的执行流程是：
+当前 [empty.c](/c:/Users/YunaCelisse/Desktop/Software/Car/src/core/empty.c) 的执行流程是：
 
 1. 调用 `SYSCFG_DL_init()`
 2. 调用 `System_Init()`

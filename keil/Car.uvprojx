@@ -341,7 +341,7 @@
               <MiscControls></MiscControls>
               <Define>__MSPM0G3507__</Define>
               <Undefine></Undefine>
-              <IncludePath>..\,C:\ti\mspm0_sdk_2_05_01_00\source\third_party\CMSIS\Core\Include,C:\ti\mspm0_sdk_2_05_01_00\source</IncludePath>
+              <IncludePath>..\,..\include\core,..\include\drivers,..\include\tasks,C:\ti\mspm0_sdk_2_05_01_00\source\third_party\CMSIS\Core\Include,C:\ti\mspm0_sdk_2_05_01_00\source</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -359,7 +359,7 @@
               <MiscControls></MiscControls>
               <Define>__MSPM0G3507__</Define>
               <Undefine></Undefine>
-              <IncludePath>..\,C:\ti\mspm0_sdk_2_05_01_00\source\third_party\CMSIS\Core\Include,C:\ti\mspm0_sdk_2_05_01_00\source</IncludePath>
+              <IncludePath>..\,..\include\core,..\include\drivers,..\include\tasks,C:\ti\mspm0_sdk_2_05_01_00\source\third_party\CMSIS\Core\Include,C:\ti\mspm0_sdk_2_05_01_00\source</IncludePath>
             </VariousControls>
           </Aads>
           <LDads>
@@ -388,87 +388,87 @@
             <File>
               <FileName>empty.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\empty.c</FilePath>
+              <FilePath>..\src\core\empty.c</FilePath>
             </File>
             <File>
               <FileName>Delay.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\Delay.c</FilePath>
+              <FilePath>..\src\drivers\Delay.c</FilePath>
             </File>
             <File>
               <FileName>Encoder.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\Encoder.c</FilePath>
+              <FilePath>..\src\drivers\Encoder.c</FilePath>
             </File>
             <File>
               <FileName>Key.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\Key.c</FilePath>
+              <FilePath>..\src\drivers\Key.c</FilePath>
             </File>
             <File>
               <FileName>Motor.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\Motor.c</FilePath>
+              <FilePath>..\src\drivers\Motor.c</FilePath>
             </File>
             <File>
               <FileName>MPU6050_MSPM0.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\MPU6050_MSPM0.c</FilePath>
+              <FilePath>..\src\drivers\MPU6050_MSPM0.c</FilePath>
             </File>
             <File>
               <FileName>OLED.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\OLED.c</FilePath>
+              <FilePath>..\src\drivers\OLED.c</FilePath>
             </File>
             <File>
               <FileName>OLED_Data.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\OLED_Data.c</FilePath>
+              <FilePath>..\src\drivers\OLED_Data.c</FilePath>
             </File>
             <File>
               <FileName>PID.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\PID.c</FilePath>
+              <FilePath>..\src\drivers\PID.c</FilePath>
             </File>
             <File>
               <FileName>Sensor.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\Sensor.c</FilePath>
+              <FilePath>..\src\drivers\Sensor.c</FilePath>
             </File>
             <File>
               <FileName>speed_loop.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\speed_loop.c</FilePath>
+              <FilePath>..\src\tasks\speed_loop.c</FilePath>
             </File>
             <File>
               <FileName>avoid_task.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\avoid_task.c</FilePath>
+              <FilePath>..\src\tasks\avoid_task.c</FilePath>
             </File>
             <File>
               <FileName>turn_task.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\turn_task.c</FilePath>
+              <FilePath>..\src\tasks\turn_task.c</FilePath>
             </File>
             <File>
               <FileName>h24_task.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\h24_task.c</FilePath>
+              <FilePath>..\src\tasks\h24_task.c</FilePath>
             </File>
             <File>
               <FileName>pid_test.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\pid_test.c</FilePath>
+              <FilePath>..\src\tasks\pid_test.c</FilePath>
             </File>
             <File>
               <FileName>Uart.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\Uart.c</FilePath>
+              <FilePath>..\src\drivers\Uart.c</FilePath>
             </File>
             <File>
               <FileName>Ultrasonic.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\Ultrasonic.c</FilePath>
+              <FilePath>..\src\drivers\Ultrasonic.c</FilePath>
             </File>
           </Files>
         </Group>

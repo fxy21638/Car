@@ -18,15 +18,21 @@
         {
             "name": "Car_Car",
             "includePath": [
-                "c:\\Users\\YunaCelisse\\Desktop\\Software\\Car",
+                "${workspaceFolder}",
+                "${workspaceFolder}/include",
+                "${workspaceFolder}/include/core",
+                "${workspaceFolder}/include/drivers",
+                "${workspaceFolder}/include/tasks",
+                "${workspaceFolder}/src/core",
+                "${workspaceFolder}/src/drivers",
+                "${workspaceFolder}/src/tasks",
+                "${workspaceFolder}/keil",
                 "C:\\ti\\mspm0_sdk_2_05_01_00\\source\\third_party\\CMSIS\\Core\\Include",
                 "C:\\ti\\mspm0_sdk_2_05_01_00\\source",
                 "C:\\Users\\YunaCelisse\\AppData\\Local\\Keil_v5\\ARM\\ARMCLANG\\include",
                 "C:\\Users\\YunaCelisse\\AppData\\Local\\Keil_v5\\ARM\\ARMCLANG\\include\\arm_linux",
                 "C:\\Users\\YunaCelisse\\AppData\\Local\\Keil_v5\\ARM\\ARMCLANG\\include\\arm_linux_compat",
                 "C:\\Users\\YunaCelisse\\AppData\\Local\\Keil_v5\\ARM\\ARMCLANG\\include\\libcxx",
-                "c:\\Users\\YunaCelisse\\Desktop\\Software\\Car",
-                "c:\\Users\\YunaCelisse\\Desktop\\Software\\Car\\keil",
                 "${default}"
             ],
             "defines": [
