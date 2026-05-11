@@ -105,8 +105,8 @@ static void H24_FollowLineWithSpeed(int baseSpeed)
     steerPID.actual = (float) linePos;
     PID_Update(&steerPID);
 
-    H24_ApplySpeedTargets(baseSpeed - (int) steerPID.output,
-                          baseSpeed + (int) steerPID.output);
+    H24_ApplySpeedTargets(baseSpeed + (int) steerPID.output,
+                          baseSpeed - (int) steerPID.output);
 }
 
 static void H24_DriveStraightWithYaw(float targetYawDeg, int baseSpeed)
