@@ -15,23 +15,36 @@ typedef enum
 
 typedef enum
 {
+    H24_SEGMENT_BLACK = 0,
+    H24_SEGMENT_WHITE
+} H24SegmentType;
+
+typedef enum
+{
     H24_MENU_MAIN = 0,
     H24_MENU_RUNNING
 } H24MenuState;
 
 static H24Stage g_h24Stage = H24_STAGE_BLANK_A_TO_B;
-static unsigned long g_h24StageMs = 0;
 static float g_h24StraightYaw = 0.0f;
 static uint8_t g_h24Task = 0;
 static uint8_t g_h24Running = 0;
 static H24MenuState g_h24MenuState = H24_MENU_MAIN;
+static H24SegmentType g_h24StartSegment = H24_SEGMENT_BLACK;
+static H24SegmentType g_h24CurrentSegment = H24_SEGMENT_BLACK;
+static uint8_t g_h24AllWhiteFiltered = 0;
+static uint8_t g_h24AllWhiteLastRaw = 0;
+static unsigned long g_h24AllWhiteLastChangeMs = 0;
+static uint8_t g_h24CompletedTransitions = 0;
 extern volatile unsigned long tick_ms;
 
 #define H24_LINE_SPEED (50)
 #define H24_STRAIGHT_SPEED (48)
 #define H24_SEEK_SPEED (35)
-#define H24_LINE_DEBOUNCE_MS (60UL)
-#define H24_RIGHT_CORRECT_DEG (15.0f)
+#define H24_IR_FILTER_MS (20UL)
+#define H24_RIGHT_CORRECT_DEG (8.0f)
+#define H24_TRANSITIONS_PER_LAP (4U)
+#define H24_TRACK_STEER_SCALE (0.85f)
 
 static uint8_t H24_TaskImplemented(uint8_t taskIndex)
 {
@@ -70,13 +83,55 @@ static int H24_CountActiveLineSensors(void)
 
     for (int i = 0; i < 8; ++i)
     {
-        if (Sensor_GetState(i) == 1)
+        if (Sensor_GetState(i) != 1)
         {
             activeCount++;
         }
     }
 
     return activeCount;
+}
+
+static uint8_t H24_IsAllWhite(void)
+{
+    return (H24_CountActiveLineSensors() == 0) ? 1U : 0U;
+}
+
+static uint8_t H24_GetAllWhiteFiltered(unsigned long nowMs)
+{
+    uint8_t raw = H24_IsAllWhite();
+
+    if (raw != g_h24AllWhiteLastRaw)
+    {
+        g_h24AllWhiteLastRaw = raw;
+        g_h24AllWhiteLastChangeMs = nowMs;
+    }
+
+    if ((nowMs - g_h24AllWhiteLastChangeMs) >= H24_IR_FILTER_MS)
+    {
+        g_h24AllWhiteFiltered = raw;
+    }
+
+    return g_h24AllWhiteFiltered;
+}
+
+static uint8_t H24_OnSegmentTransition(H24SegmentType nextSegment)
+{
+    if (nextSegment == g_h24CurrentSegment)
+    {
+        return 0U;
+    }
+
+    g_h24CurrentSegment = nextSegment;
+    g_h24CompletedTransitions++;
+
+    if ((g_h24CurrentSegment == g_h24StartSegment) &&
+        ((g_h24CompletedTransitions % H24_TRANSITIONS_PER_LAP) == 0U))
+    {
+        return 1U;
+    }
+
+    return 0U;
 }
 
 static void H24_ApplySpeedTargets(int leftTarget, int rightTarget)
@@ -99,14 +154,17 @@ static void H24_ApplySpeedTargets(int leftTarget, int rightTarget)
 
 static void H24_FollowLineWithSpeed(int baseSpeed)
 {
+    float steerOutput;
+
     linePos = Sensor_GetQuantizedPos();
 
     steerPID.target = 0.0f;
     steerPID.actual = (float) linePos;
     PID_Update(&steerPID);
+    steerOutput = steerPID.output * H24_TRACK_STEER_SCALE;
 
-    H24_ApplySpeedTargets(baseSpeed + (int) steerPID.output,
-                          baseSpeed - (int) steerPID.output);
+    H24_ApplySpeedTargets(baseSpeed + (int) steerOutput,
+                          baseSpeed - (int) steerOutput);
 }
 
 static void H24_DriveStraightWithYaw(float targetYawDeg, int baseSpeed)
@@ -119,66 +177,69 @@ static void H24_DriveStraightWithYaw(float targetYawDeg, int baseSpeed)
 
 static void H24_K0_Task(unsigned long nowMs)
 {
-    int activeSensors = H24_CountActiveLineSensors();
+    uint8_t allWhite = H24_GetAllWhiteFiltered(nowMs);
 
     switch (g_h24Stage)
     {
     case H24_STAGE_BLANK_A_TO_B:
         H24_DriveStraightWithYaw(g_h24StraightYaw, H24_SEEK_SPEED);
-        if (activeSensors > 0)
+        if (!allWhite)
         {
+            if (H24_OnSegmentTransition(H24_SEGMENT_BLACK))
+            {
+                g_h24Running = 0;
+                g_h24MenuState = H24_MENU_MAIN;
+                Set_PWM(0, 0);
+                break;
+            }
             g_h24Stage = H24_STAGE_ARC_B_TO_C;
-            g_h24StageMs = nowMs;
         }
         break;
 
     case H24_STAGE_ARC_B_TO_C:
         H24_FollowLineWithSpeed(H24_LINE_SPEED);
-        if (activeSensors == 0)
+        if (allWhite)
         {
-            if (nowMs - g_h24StageMs >= H24_LINE_DEBOUNCE_MS)
+            if (H24_OnSegmentTransition(H24_SEGMENT_WHITE))
             {
-                g_h24StraightYaw = H24_WrapAngle180(yaw - H24_RIGHT_CORRECT_DEG);
-                g_h24Stage = H24_STAGE_BLANK_C_TO_D;
-                g_h24StageMs = nowMs;
+                g_h24Running = 0;
+                g_h24MenuState = H24_MENU_MAIN;
+                Set_PWM(0, 0);
+                break;
             }
-        }
-        else
-        {
-            g_h24StageMs = nowMs;
+            g_h24StraightYaw = H24_WrapAngle180(yaw - H24_RIGHT_CORRECT_DEG);
+            g_h24Stage = H24_STAGE_BLANK_C_TO_D;
         }
         break;
 
     case H24_STAGE_BLANK_C_TO_D:
         H24_DriveStraightWithYaw(g_h24StraightYaw, H24_STRAIGHT_SPEED);
-        if (activeSensors > 0)
+        if (!allWhite)
         {
-            if (nowMs - g_h24StageMs >= H24_LINE_DEBOUNCE_MS)
+            if (H24_OnSegmentTransition(H24_SEGMENT_BLACK))
             {
-                g_h24Stage = H24_STAGE_ARC_D_TO_A;
-                g_h24StageMs = nowMs;
+                g_h24Running = 0;
+                g_h24MenuState = H24_MENU_MAIN;
+                Set_PWM(0, 0);
+                break;
             }
-        }
-        else
-        {
-            g_h24StageMs = nowMs;
+            g_h24Stage = H24_STAGE_ARC_D_TO_A;
         }
         break;
 
     case H24_STAGE_ARC_D_TO_A:
         H24_FollowLineWithSpeed(H24_LINE_SPEED);
-        if (activeSensors == 0)
+        if (allWhite)
         {
-            if (nowMs - g_h24StageMs >= H24_LINE_DEBOUNCE_MS)
+            if (H24_OnSegmentTransition(H24_SEGMENT_WHITE))
             {
-                g_h24StraightYaw = H24_WrapAngle180(yaw - H24_RIGHT_CORRECT_DEG);
-                g_h24Stage = H24_STAGE_BLANK_A_TO_B;
-                g_h24StageMs = nowMs;
+                g_h24Running = 0;
+                g_h24MenuState = H24_MENU_MAIN;
+                Set_PWM(0, 0);
+                break;
             }
-        }
-        else
-        {
-            g_h24StageMs = nowMs;
+            g_h24StraightYaw = H24_WrapAngle180(yaw - H24_RIGHT_CORRECT_DEG);
+            g_h24Stage = H24_STAGE_BLANK_A_TO_B;
         }
         break;
     }
@@ -186,10 +247,15 @@ static void H24_K0_Task(unsigned long nowMs)
 
 static void H24_Reset(void)
 {
-    g_h24Stage = (H24_CountActiveLineSensors() > 0)
-                     ? H24_STAGE_ARC_B_TO_C
-                     : H24_STAGE_BLANK_A_TO_B;
-    g_h24StageMs = tick_ms;
+    uint8_t allWhite = H24_IsAllWhite();
+
+    g_h24AllWhiteFiltered = allWhite;
+    g_h24AllWhiteLastRaw = allWhite;
+    g_h24AllWhiteLastChangeMs = tick_ms;
+    g_h24CompletedTransitions = 0;
+    g_h24StartSegment = allWhite ? H24_SEGMENT_WHITE : H24_SEGMENT_BLACK;
+    g_h24CurrentSegment = g_h24StartSegment;
+    g_h24Stage = allWhite ? H24_STAGE_BLANK_A_TO_B : H24_STAGE_ARC_B_TO_C;
     g_h24StraightYaw = yaw;
 }
 
@@ -230,25 +296,36 @@ static void H24_StartTaskByIndex(uint8_t taskIndex)
 
 static void H24_ShowMainOled(void)
 {
-    OLED_ShowString(0, 0, "=== H24 TASK ===", OLED_8X16);
-    OLED_ShowString(0, 16, "K1:K1 K2:K2", OLED_8X16);
-    OLED_ShowString(0, 32, "K3:K3 K4:K4", OLED_8X16);
-    OLED_ShowString(0, 48, "Last:K", OLED_8X16);
-    OLED_ShowSignedNum(48, 48, (int16_t)(g_h24Task + 1U), 1, OLED_8X16);
-    OLED_ShowString(64, 48,
-                    H24_TaskImplemented(g_h24Task) ? "READY" : "TODO",
-                    OLED_8X16);
+}
+
+static char *H24_GetStageText(void)
+{
+    static char kTrackText[] = "TRACK";
+    static char kStraightText[] = "STRAIGHT";
+
+    switch (g_h24Stage)
+    {
+    case H24_STAGE_ARC_B_TO_C:
+    case H24_STAGE_ARC_D_TO_A:
+        return kTrackText;
+
+    case H24_STAGE_BLANK_A_TO_B:
+    case H24_STAGE_BLANK_C_TO_D:
+    default:
+        return kStraightText;
+    }
 }
 
 static void H24_ShowRunningOled(void)
 {
-    OLED_ShowString(0, 0, "=== RUNNING ===", OLED_8X16);
-    OLED_ShowString(0, 16, "Mode:H24", OLED_8X16);
-    OLED_ShowString(72, 16, "K", OLED_8X16);
-    OLED_ShowSignedNum(88, 16, (int16_t)(g_h24Task + 1U), 1, OLED_8X16);
-    OLED_ShowString(0, 32, "Yaw:", OLED_8X16);
-    OLED_ShowSignedNum(40, 32, (int16_t) yaw, 4, OLED_8X16);
-    OLED_ShowString(0, 48, "K1:Stop", OLED_8X16);
+    OLED_ShowString(0, 0, "State:", OLED_8X16);
+    OLED_ShowString(48, 0, H24_GetStageText(), OLED_8X16);
+    OLED_ShowString(0, 16, "Yaw:", OLED_8X16);
+    OLED_ShowSignedNum(40, 16, (int16_t) yaw, 4, OLED_8X16);
+    OLED_ShowString(0, 32, "L:", OLED_8X16);
+    OLED_ShowSignedNum(24, 32, leftEncSpeed, 4, OLED_8X16);
+    OLED_ShowString(64, 32, "R:", OLED_8X16);
+    OLED_ShowSignedNum(88, 32, rightEncSpeed, 4, OLED_8X16);
 }
 
 void H24_Task(unsigned long nowMs)

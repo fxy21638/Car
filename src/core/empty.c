@@ -74,7 +74,7 @@ int main(void)
         /* PIDTest_Task(nowMs); */
 
         VOFA_SendSpeedLoop();
-        Delay_ms(10);
+        Delay_ms(5);
     }
 }
 
@@ -112,6 +112,6 @@ void System_Init(void)
     }
 
     InitPidControllers();
-    PID_Init(&steerPID, 0.75f, 0.03f, 0.9f, 80, -80, 60, 0.7f);
-    PID_Init(&anglePID, 1.2f, 0.1f, 1.2f, 70, -70, 80, 0.7f);
+    PID_Init(&steerPID, 0.54f, 0.00f, 0.00f, 68, -68, 45, 0.95f);
+    PID_Init(&anglePID, 0.55f, 0.00f, 0.08f, 24, -24, 12, 0.7f);
 }

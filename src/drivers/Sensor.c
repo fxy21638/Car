@@ -1,6 +1,6 @@
 #include "Sensor.h"
 
-const int posWeight[8] = {-24, -12, -6, -2, 2, 6, 12, 24};
+const int posWeight[8] = {-24, -12, -8, -5, 5, 8, 12, 24};
 
 extern int BASE_SPEED;
 extern int linePos;
