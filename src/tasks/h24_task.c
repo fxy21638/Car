@@ -4,6 +4,7 @@
 #include "Motor.h"
 #include "OLED.h"
 #include "Sensor.h"
+#include <math.h>
 
 typedef enum
 {
@@ -12,6 +13,16 @@ typedef enum
     H24_STAGE_BLANK_C_TO_D,
     H24_STAGE_ARC_D_TO_A
 } H24Stage;
+
+typedef enum
+{
+    H24_FIG8_TURN_RIGHT = 0,
+    H24_FIG8_STRAIGHT_TO_LINE_1,
+    H24_FIG8_TRACK_1,
+    H24_FIG8_TURN_LEFT,
+    H24_FIG8_STRAIGHT_TO_LINE_2,
+    H24_FIG8_TRACK_2
+} H24Fig8Mode;
 
 typedef enum
 {
@@ -36,6 +47,9 @@ static uint8_t g_h24AllWhiteFiltered = 0;
 static uint8_t g_h24AllWhiteLastRaw = 0;
 static unsigned long g_h24AllWhiteLastChangeMs = 0;
 static uint8_t g_h24CompletedTransitions = 0;
+static H24Fig8Mode g_h24Fig8Mode = H24_FIG8_TURN_RIGHT;
+static float g_h24TurnTargetYaw = 0.0f;
+static unsigned long g_h24TrackReentryMs = 0;
 extern volatile unsigned long tick_ms;
 
 #define H24_LINE_SPEED (50)
@@ -44,11 +58,15 @@ extern volatile unsigned long tick_ms;
 #define H24_IR_FILTER_MS (20UL)
 #define H24_RIGHT_CORRECT_DEG (8.0f)
 #define H24_TRANSITIONS_PER_LAP (4U)
-#define H24_TRACK_STEER_SCALE (0.85f)
+#define H24_TRACK_STEER_SCALE (1.70f)
+#define H24_FIG8_ENTRY_TURN_DEG (35.0f)
+#define H24_TRACK_REENTRY_SOFT_MS (180UL)
+#define H24_TRACK_REENTRY_CENTER_BAND (10)
+#define H24_TRACK_REENTRY_CENTER_SCALE (0.30f)
 
 static uint8_t H24_TaskImplemented(uint8_t taskIndex)
 {
-    return (taskIndex == 0U) ? 1U : 0U;
+    return (taskIndex <= 1U) ? 1U : 0U;
 }
 
 static int H24_ClampInt(int value, int minVal, int maxVal)
@@ -134,6 +152,13 @@ static uint8_t H24_OnSegmentTransition(H24SegmentType nextSegment)
     return 0U;
 }
 
+static void H24_StopRunning(void)
+{
+    g_h24Running = 0;
+    g_h24MenuState = H24_MENU_MAIN;
+    Set_PWM(0, 0);
+}
+
 static void H24_ApplySpeedTargets(int leftTarget, int rightTarget)
 {
     targetLeftSpeed = H24_ClampInt(leftTarget, -90, 90);
@@ -152,14 +177,23 @@ static void H24_ApplySpeedTargets(int leftTarget, int rightTarget)
     Set_PWM(PWMleft, PWMright);
 }
 
-static void H24_FollowLineWithSpeed(int baseSpeed)
+static void H24_FollowLineWithSpeed(int baseSpeed, unsigned long nowMs)
 {
     float steerOutput;
+    int adjustedLinePos;
 
     linePos = Sensor_GetQuantizedPos();
+    adjustedLinePos = linePos;
+
+    if ((nowMs - g_h24TrackReentryMs) <= H24_TRACK_REENTRY_SOFT_MS &&
+        adjustedLinePos >= -H24_TRACK_REENTRY_CENTER_BAND &&
+        adjustedLinePos <= H24_TRACK_REENTRY_CENTER_BAND)
+    {
+        adjustedLinePos = (int)(adjustedLinePos * H24_TRACK_REENTRY_CENTER_SCALE);
+    }
 
     steerPID.target = 0.0f;
-    steerPID.actual = (float) linePos;
+    steerPID.actual = (float) adjustedLinePos;
     PID_Update(&steerPID);
     steerOutput = steerPID.output * H24_TRACK_STEER_SCALE;
 
@@ -187,24 +221,21 @@ static void H24_K0_Task(unsigned long nowMs)
         {
             if (H24_OnSegmentTransition(H24_SEGMENT_BLACK))
             {
-                g_h24Running = 0;
-                g_h24MenuState = H24_MENU_MAIN;
-                Set_PWM(0, 0);
+                H24_StopRunning();
                 break;
             }
+            g_h24TrackReentryMs = nowMs;
             g_h24Stage = H24_STAGE_ARC_B_TO_C;
         }
         break;
 
     case H24_STAGE_ARC_B_TO_C:
-        H24_FollowLineWithSpeed(H24_LINE_SPEED);
+        H24_FollowLineWithSpeed(H24_LINE_SPEED, nowMs);
         if (allWhite)
         {
             if (H24_OnSegmentTransition(H24_SEGMENT_WHITE))
             {
-                g_h24Running = 0;
-                g_h24MenuState = H24_MENU_MAIN;
-                Set_PWM(0, 0);
+                H24_StopRunning();
                 break;
             }
             g_h24StraightYaw = H24_WrapAngle180(yaw - H24_RIGHT_CORRECT_DEG);
@@ -218,24 +249,21 @@ static void H24_K0_Task(unsigned long nowMs)
         {
             if (H24_OnSegmentTransition(H24_SEGMENT_BLACK))
             {
-                g_h24Running = 0;
-                g_h24MenuState = H24_MENU_MAIN;
-                Set_PWM(0, 0);
+                H24_StopRunning();
                 break;
             }
+            g_h24TrackReentryMs = nowMs;
             g_h24Stage = H24_STAGE_ARC_D_TO_A;
         }
         break;
 
     case H24_STAGE_ARC_D_TO_A:
-        H24_FollowLineWithSpeed(H24_LINE_SPEED);
+        H24_FollowLineWithSpeed(H24_LINE_SPEED, nowMs);
         if (allWhite)
         {
             if (H24_OnSegmentTransition(H24_SEGMENT_WHITE))
             {
-                g_h24Running = 0;
-                g_h24MenuState = H24_MENU_MAIN;
-                Set_PWM(0, 0);
+                H24_StopRunning();
                 break;
             }
             g_h24StraightYaw = H24_WrapAngle180(yaw - H24_RIGHT_CORRECT_DEG);
@@ -245,7 +273,78 @@ static void H24_K0_Task(unsigned long nowMs)
     }
 }
 
-static void H24_Reset(void)
+static void H24_K1_Fig8_Task(unsigned long nowMs)
+{
+    uint8_t allWhite = H24_GetAllWhiteFiltered(nowMs);
+
+    (void)nowMs;
+
+    switch (g_h24Fig8Mode)
+    {
+    case H24_FIG8_TURN_RIGHT:
+        TurnToAngle(g_h24TurnTargetYaw);
+        if (fabsf(H24_WrapAngle180(yaw - g_h24TurnTargetYaw)) <= 5.0f)
+        {
+            g_h24StraightYaw = g_h24TurnTargetYaw;
+            g_h24Fig8Mode = H24_FIG8_STRAIGHT_TO_LINE_1;
+            g_h24Stage = H24_STAGE_BLANK_A_TO_B;
+        }
+        break;
+
+    case H24_FIG8_STRAIGHT_TO_LINE_1:
+        H24_DriveStraightWithYaw(g_h24StraightYaw, H24_SEEK_SPEED);
+        if (!allWhite)
+        {
+            g_h24Fig8Mode = H24_FIG8_TRACK_1;
+            g_h24TrackReentryMs = nowMs;
+            g_h24Stage = H24_STAGE_ARC_B_TO_C;
+        }
+        break;
+
+    case H24_FIG8_TRACK_1:
+        H24_FollowLineWithSpeed(H24_LINE_SPEED, nowMs);
+        if (allWhite)
+        {
+            /* 保留原有的出线修正，再从修正后的朝向左转 40 度进入第二段。 */
+            g_h24StraightYaw = H24_WrapAngle180(yaw - H24_RIGHT_CORRECT_DEG);
+            g_h24TurnTargetYaw = H24_WrapAngle180(
+                g_h24StraightYaw + H24_FIG8_ENTRY_TURN_DEG);
+            g_h24Fig8Mode = H24_FIG8_TURN_LEFT;
+            g_h24Stage = H24_STAGE_BLANK_C_TO_D;
+        }
+        break;
+
+    case H24_FIG8_TURN_LEFT:
+        TurnToAngle(g_h24TurnTargetYaw);
+        if (fabsf(H24_WrapAngle180(yaw - g_h24TurnTargetYaw)) <= 5.0f)
+        {
+            g_h24StraightYaw = g_h24TurnTargetYaw;
+            g_h24Fig8Mode = H24_FIG8_STRAIGHT_TO_LINE_2;
+            g_h24Stage = H24_STAGE_BLANK_C_TO_D;
+        }
+        break;
+
+    case H24_FIG8_STRAIGHT_TO_LINE_2:
+        H24_DriveStraightWithYaw(g_h24StraightYaw, H24_SEEK_SPEED);
+        if (!allWhite)
+        {
+            g_h24Fig8Mode = H24_FIG8_TRACK_2;
+            g_h24TrackReentryMs = nowMs;
+            g_h24Stage = H24_STAGE_ARC_D_TO_A;
+        }
+        break;
+
+    case H24_FIG8_TRACK_2:
+        H24_FollowLineWithSpeed(H24_LINE_SPEED, nowMs);
+        if (allWhite)
+        {
+            H24_StopRunning();
+        }
+        break;
+    }
+}
+
+static void H24_Reset(uint8_t taskIndex)
 {
     uint8_t allWhite = H24_IsAllWhite();
 
@@ -255,8 +354,20 @@ static void H24_Reset(void)
     g_h24CompletedTransitions = 0;
     g_h24StartSegment = allWhite ? H24_SEGMENT_WHITE : H24_SEGMENT_BLACK;
     g_h24CurrentSegment = g_h24StartSegment;
-    g_h24Stage = allWhite ? H24_STAGE_BLANK_A_TO_B : H24_STAGE_ARC_B_TO_C;
-    g_h24StraightYaw = yaw;
+    if (taskIndex == 0U)
+    {
+        g_h24Stage = allWhite ? H24_STAGE_BLANK_A_TO_B : H24_STAGE_ARC_B_TO_C;
+        g_h24StraightYaw = yaw;
+        g_h24TrackReentryMs = tick_ms;
+    }
+    else
+    {
+        g_h24TurnTargetYaw = H24_WrapAngle180(yaw - H24_FIG8_ENTRY_TURN_DEG);
+        g_h24Fig8Mode = allWhite ? H24_FIG8_TURN_RIGHT : H24_FIG8_TRACK_1;
+        g_h24Stage = allWhite ? H24_STAGE_BLANK_A_TO_B : H24_STAGE_ARC_B_TO_C;
+        g_h24StraightYaw = yaw;
+        g_h24TrackReentryMs = tick_ms;
+    }
 }
 
 static void H24_StartSelectedTask(void)
@@ -271,7 +382,7 @@ static void H24_StartSelectedTask(void)
 
     g_h24MenuState = H24_MENU_RUNNING;
     g_h24Running = 1;
-    H24_Reset();
+    H24_Reset(g_h24Task);
 }
 
 static void H24_RunSelectedTask(unsigned long nowMs)
@@ -280,6 +391,10 @@ static void H24_RunSelectedTask(unsigned long nowMs)
     {
     case 0:
         H24_K0_Task(nowMs);
+        break;
+
+    case 1:
+        H24_K1_Fig8_Task(nowMs);
         break;
 
     default:
