@@ -49,16 +49,19 @@ static unsigned long g_h24AllWhiteLastChangeMs = 0;
 static uint8_t g_h24CompletedTransitions = 0;
 static H24Fig8Mode g_h24Fig8Mode = H24_FIG8_TURN_RIGHT;
 static float g_h24TurnTargetYaw = 0.0f;
+static uint8_t g_h24LastStartKey = 0U;
+static unsigned long g_h24LastOledUpdateMs = 0;
 extern volatile unsigned long tick_ms;
 
 #define H24_LINE_SPEED (30)
 #define H24_STRAIGHT_SPEED (48)
 #define H24_SEEK_SPEED (35)
 #define H24_IR_FILTER_MS (20UL)
-#define H24_RIGHT_CORRECT_DEG (8.0f)
+#define H24_RIGHT_CORRECT_DEG (20.0f)
 #define H24_TRANSITIONS_PER_LAP (4U)
 #define H24_TRACK_STEER_SCALE (1.70f)
 #define H24_FIG8_ENTRY_TURN_DEG (35.0f)
+#define H24_OLED_UPDATE_MS (50UL)
 
 static uint8_t H24_TaskImplemented(uint8_t taskIndex)
 {
@@ -387,6 +390,7 @@ static void H24_RunSelectedTask(unsigned long nowMs)
 static void H24_StartTaskByIndex(uint8_t taskIndex)
 {
     g_h24Task = taskIndex;
+    g_h24LastStartKey = (uint8_t)(taskIndex + 1U);
     H24_StartSelectedTask();
 }
 
@@ -418,8 +422,9 @@ static char *H24_GetStageText(void)
 
 static void H24_ShowRunningOled(void)
 {
-    OLED_ShowString(0, 0, "State:", OLED_8X16);
-    OLED_ShowString(48, 0, H24_GetStageText(), OLED_8X16);
+    OLED_ShowString(0, 0, "RUN K", OLED_8X16);
+    OLED_ShowSignedNum(48, 0, (int16_t)g_h24LastStartKey, 1, OLED_8X16);
+    OLED_ShowString(64, 0, H24_GetStageText(), OLED_8X16);
     OLED_ShowString(0, 16, "Yaw:", OLED_8X16);
     OLED_ShowSignedNum(40, 16, (int16_t) yaw, 4, OLED_8X16);
     OLED_ShowString(0, 32, "L:", OLED_8X16);
@@ -474,14 +479,5 @@ void H24_Task(unsigned long nowMs)
         Set_PWM(0, 0);
     }
 
-    OLED_Clear();
-    if (g_h24MenuState == H24_MENU_MAIN)
-    {
-        H24_ShowMainOled();
-    }
-    else if (g_h24MenuState == H24_MENU_RUNNING)
-    {
-        H24_ShowRunningOled();
-    }
-    OLED_Update();
+    (void)nowMs;
 }
