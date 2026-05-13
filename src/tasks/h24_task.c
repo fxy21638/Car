@@ -49,10 +49,9 @@ static unsigned long g_h24AllWhiteLastChangeMs = 0;
 static uint8_t g_h24CompletedTransitions = 0;
 static H24Fig8Mode g_h24Fig8Mode = H24_FIG8_TURN_RIGHT;
 static float g_h24TurnTargetYaw = 0.0f;
-static unsigned long g_h24TrackReentryMs = 0;
 extern volatile unsigned long tick_ms;
 
-#define H24_LINE_SPEED (50)
+#define H24_LINE_SPEED (30)
 #define H24_STRAIGHT_SPEED (48)
 #define H24_SEEK_SPEED (35)
 #define H24_IR_FILTER_MS (20UL)
@@ -60,9 +59,6 @@ extern volatile unsigned long tick_ms;
 #define H24_TRANSITIONS_PER_LAP (4U)
 #define H24_TRACK_STEER_SCALE (1.70f)
 #define H24_FIG8_ENTRY_TURN_DEG (35.0f)
-#define H24_TRACK_REENTRY_SOFT_MS (180UL)
-#define H24_TRACK_REENTRY_CENTER_BAND (10)
-#define H24_TRACK_REENTRY_CENTER_SCALE (0.30f)
 
 static uint8_t H24_TaskImplemented(uint8_t taskIndex)
 {
@@ -177,23 +173,14 @@ static void H24_ApplySpeedTargets(int leftTarget, int rightTarget)
     Set_PWM(PWMleft, PWMright);
 }
 
-static void H24_FollowLineWithSpeed(int baseSpeed, unsigned long nowMs)
+static void H24_FollowLineWithSpeed(int baseSpeed)
 {
     float steerOutput;
-    int adjustedLinePos;
 
     linePos = Sensor_GetQuantizedPos();
-    adjustedLinePos = linePos;
-
-    if ((nowMs - g_h24TrackReentryMs) <= H24_TRACK_REENTRY_SOFT_MS &&
-        adjustedLinePos >= -H24_TRACK_REENTRY_CENTER_BAND &&
-        adjustedLinePos <= H24_TRACK_REENTRY_CENTER_BAND)
-    {
-        adjustedLinePos = (int)(adjustedLinePos * H24_TRACK_REENTRY_CENTER_SCALE);
-    }
 
     steerPID.target = 0.0f;
-    steerPID.actual = (float) adjustedLinePos;
+    steerPID.actual = (float) linePos;
     PID_Update(&steerPID);
     steerOutput = steerPID.output * H24_TRACK_STEER_SCALE;
 
@@ -224,13 +211,12 @@ static void H24_K0_Task(unsigned long nowMs)
                 H24_StopRunning();
                 break;
             }
-            g_h24TrackReentryMs = nowMs;
             g_h24Stage = H24_STAGE_ARC_B_TO_C;
         }
         break;
 
     case H24_STAGE_ARC_B_TO_C:
-        H24_FollowLineWithSpeed(H24_LINE_SPEED, nowMs);
+        H24_FollowLineWithSpeed(H24_LINE_SPEED);
         if (allWhite)
         {
             if (H24_OnSegmentTransition(H24_SEGMENT_WHITE))
@@ -252,13 +238,12 @@ static void H24_K0_Task(unsigned long nowMs)
                 H24_StopRunning();
                 break;
             }
-            g_h24TrackReentryMs = nowMs;
             g_h24Stage = H24_STAGE_ARC_D_TO_A;
         }
         break;
 
     case H24_STAGE_ARC_D_TO_A:
-        H24_FollowLineWithSpeed(H24_LINE_SPEED, nowMs);
+        H24_FollowLineWithSpeed(H24_LINE_SPEED);
         if (allWhite)
         {
             if (H24_OnSegmentTransition(H24_SEGMENT_WHITE))
@@ -296,13 +281,12 @@ static void H24_K1_Fig8_Task(unsigned long nowMs)
         if (!allWhite)
         {
             g_h24Fig8Mode = H24_FIG8_TRACK_1;
-            g_h24TrackReentryMs = nowMs;
             g_h24Stage = H24_STAGE_ARC_B_TO_C;
         }
         break;
 
     case H24_FIG8_TRACK_1:
-        H24_FollowLineWithSpeed(H24_LINE_SPEED, nowMs);
+        H24_FollowLineWithSpeed(H24_LINE_SPEED);
         if (allWhite)
         {
             /* 保留原有的出线修正，再从修正后的朝向左转 40 度进入第二段。 */
@@ -329,13 +313,12 @@ static void H24_K1_Fig8_Task(unsigned long nowMs)
         if (!allWhite)
         {
             g_h24Fig8Mode = H24_FIG8_TRACK_2;
-            g_h24TrackReentryMs = nowMs;
             g_h24Stage = H24_STAGE_ARC_D_TO_A;
         }
         break;
 
     case H24_FIG8_TRACK_2:
-        H24_FollowLineWithSpeed(H24_LINE_SPEED, nowMs);
+        H24_FollowLineWithSpeed(H24_LINE_SPEED);
         if (allWhite)
         {
             H24_StopRunning();
@@ -358,7 +341,6 @@ static void H24_Reset(uint8_t taskIndex)
     {
         g_h24Stage = allWhite ? H24_STAGE_BLANK_A_TO_B : H24_STAGE_ARC_B_TO_C;
         g_h24StraightYaw = yaw;
-        g_h24TrackReentryMs = tick_ms;
     }
     else
     {
@@ -366,7 +348,6 @@ static void H24_Reset(uint8_t taskIndex)
         g_h24Fig8Mode = allWhite ? H24_FIG8_TURN_RIGHT : H24_FIG8_TRACK_1;
         g_h24Stage = allWhite ? H24_STAGE_BLANK_A_TO_B : H24_STAGE_ARC_B_TO_C;
         g_h24StraightYaw = yaw;
-        g_h24TrackReentryMs = tick_ms;
     }
 }
 
@@ -411,6 +392,10 @@ static void H24_StartTaskByIndex(uint8_t taskIndex)
 
 static void H24_ShowMainOled(void)
 {
+    OLED_ShowString(0, 0, "H24", OLED_8X16);
+    OLED_ShowString(0, 16, "K1: LOOP", OLED_8X16);
+    OLED_ShowString(0, 32, "K2: FIG8", OLED_8X16);
+    OLED_ShowString(0, 48, "WAIT KEY", OLED_8X16);
 }
 
 static char *H24_GetStageText(void)

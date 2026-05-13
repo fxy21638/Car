@@ -112,6 +112,6 @@ void System_Init(void)
     }
 
     InitPidControllers();
-    PID_Init(&steerPID, 0.54f, 0.00f, 0.00f, 68, -68, 45, 0.95f);
+    PID_Init(&steerPID, 1.0f, 0.00f, 0.0f, 68, -68, 45, 0.95f);
     PID_Init(&anglePID, 0.55f, 0.00f, 0.08f, 24, -24, 12, 0.7f);
 }
