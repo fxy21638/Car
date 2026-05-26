@@ -1,3 +1,9 @@
+# 历史遗留代码 / Legacy Code
+
+> **注意**：此仓库是我之前写的智能小车项目代码，基于 TI MSPM0G3507 平台。代码为历史遗留，不再维护，仅供参考。
+
+---
+
 ## Example Summary
 
 Empty project using DriverLib.
