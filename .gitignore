@@ -1,0 +1,51 @@
+# Build output
+Debug/
+Release/
+Objects/
+Listings/
+
+# Compiled files
+*.o
+*.obj
+*.elf
+*.out
+*.bin
+*.hex
+*.map
+*.lst
+*.d
+*.dep
+
+# IDE - CCS/Theia
+.theia/
+.settings/
+.ccsproject
+.cproject
+.project
+.clangd
+
+# IDE - Keil
+*.uvguix.*
+*.scvd
+JLinkLog.txt
+*.uvoptx
+
+# IDE - VSCode
+.vscode/
+
+# Temporary files
+*.tmp
+*.bak
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs
+logs.txt
+
+# IAR
+*.eww
+*.ewd
