@@ -43,14 +43,14 @@
 #include "Ultrasonic.h"
 #include "Uart.h"
 
-// �ٶ�PID
+// 速度PID
 PID_t leftPID;
 PID_t rightPID;
 
-// ѭ��ת��PID
+// 循线转向PID
 PID_t steerPID;
 
-int BASE_SPEED = 60; // �����ٶ�
+int BASE_SPEED = 60; // 基础速度
 int linePos = 0;
 int lastSumPos = 0;
 int is_lost = 0;
@@ -93,17 +93,17 @@ static void ObstacleAvoidance_Task(unsigned long nowMs);
 
 int main(void)
 {
-    // �����ȵ���SysConfig��ʼ��
+    // 计次ȵSysConfigʼ
     SYSCFG_DL_init();
 
-    // ϵͳӲ����ʼ��
+    // 系统硬件初始化
     System_Init();
 
     DL_GPIO_setPins(LEDB_PORT, LEDB_PIN_22_PIN);
     while (1)
     {
 
-        //        // ��ȡѭ��λ��
+        //       // 读取循线位置
         linePos = Sensor_GetQuantizedPos();
 
         /* 每帧更新一次测距数据 */
@@ -122,7 +122,7 @@ int main(void)
             {
                 PID_control();
                 // if (g_avoidEnable) {
-                //     ObstacleAvoidance_Task(tick_ms);
+                //    ObstacleAvoidance_Task(tick_ms);
                 // }
             }
         }
@@ -247,38 +247,38 @@ void System_Init(void)
 {
     SysTick_Init();
 
-    // �����ʼ��
+    // 计次ʼ
     Motor_Init();
 
-    // ѭ����ʼ��
+    // 循线初始化
     Sensor_Init();
 
-    // �������ȼ�������ԽС���ȼ�Խ�ߣ�Cortex-M0+ ֧�� 0~3 �� 4 ����
-    NVIC_SetPriority(GPIOA_INT_IRQn, 0); // GPIOA ������ȼ�
-    NVIC_SetPriority(TIMA0_INT_IRQn, 1); // ��ʱ���θ�
+    // 计次ȼԽСȼԽߣCortex-M0+ ֧ 0~3  4 
+    NVIC_SetPriority(GPIOA_INT_IRQn, 0); // GPIOA 中断优先级
+    NVIC_SetPriority(TIMA0_INT_IRQn, 1); // 编码器ʱθ
 
-    // ������ܲ����Ĺ����־
+    // 计次ܲĹ־
     NVIC_ClearPendingIRQ(GPIOA_INT_IRQn);
     NVIC_ClearPendingIRQ(TIMA0_INT_IRQn);
 
-    // ʹ���ж�
+    // 使能中断
     NVIC_EnableIRQ(GPIOA_INT_IRQn);
     NVIC_EnableIRQ(TIMA0_INT_IRQn);
 
-    // ��������ʼ��
+    // 计次ʼ
     Encoder_Init();
 
     Key_Init();
     Ultrasonic_Init();
 
-    // �����ж�
+    // 开启中断
     __enable_irq();
 
     OLED_Init();
 
     /* MPU6050: 初始化 + 静止校准（上电保持车不动约 1s） */
-    //    (void)MPU6050_Init(&gImu);
-    //    (void)MPU6050_CalibrateGyroZ(&gImu, 200u, 5u);
+    //   (void)MPU6050_Init(&gImu);
+    //   (void)MPU6050_CalibrateGyroZ(&gImu, 200u, 5u);
 
     PID_Init(&leftPID, 1.0f, 0.01f, 3.0f, 80, -80, 60, 0.2f); // 速度环
     PID_Init(&rightPID, 1.0f, 0.01f, 3.0f, 80, -80, 60, 0.2f);

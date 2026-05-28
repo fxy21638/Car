@@ -1,64 +1,64 @@
-#ifndef MPU6050_MSPM0_H
-#define MPU6050_MSPM0_H
-
-#include <stdbool.h>
-#include <stdint.h>
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
-    typedef struct
-    {
-        float gyroZBias_dps;        /* ÁãÆ« (¡ã/s)£¬ÔËÐÐÖÐ×ÔÊÊÓ¦¸üÐÂ */
-        float yaw_deg;              /* ÀÛ¼Æº½Ïò½Ç (¡ã) */
-
-        float gyroZFilt_dps;        /* µÍÍ¨ÂË²¨ºóµÄÍÓÂÝÒÇ Z Öá½ÇËÙ¶È */
-
-        uint32_t lastUpdateMs;
-        uint16_t samplePeriodMs;
-        int16_t prevRawGyroZ;       /* ÉÏÒ»Ö¡Ô­Ê¼ÍÓÂÝÒÇ Z Öµ£¬ÓÃÓÚ¼â·å¼ì²â */
-    } MPU6050_Handle;
-
-    /* ×ÔÊÊÓ¦ÁãÆ«¸ú×Ù²ÎÊý£¨ÒÆÖ²×Ô ICM-42686 ·½°¸£© */
-    #define MPU6050_GYRO_Z_DEADBAND_DPS      (0.15f) /* ËÀÇø£ºµÍÓÚ´ËÖµÊÓÎªÔëÉù£¬²»»ý·Ö */
-    #define MPU6050_GYRO_Z_BIAS_TRACK_DPS    (0.80f) /* Æ«ÖÃ¸ú×ÙãÐÖµ£ºµÍÓÚ´ËÖµÈÏÎª"²»ÔÚ×ªÏò"£¬¸üÐÂÁãÆ« */
-    #define MPU6050_BIAS_ADAPT_ALPHA         (0.01f) /* ÁãÆ«ÊÊÓ¦ËÙÂÊ£ºÔ½Ð¡¸ú×ÙÔ½Âý£¬Ô½ÎÈ¶¨ */
-
-    /* ¼â·å¼ì²â£ºÏàÁÚÁ½´ÎÔ­Ê¼¶ÁÊýÏà²î³¬¹ý´ËãÐÖµÊÓÎª I2C ¸ÉÈÅ£¬¶ªÆúµ±Ö¡¡£
-     * 100 dps ¡Á 131 LSB/(dps) ¡Ö 13100 LSB¡£Ð¡³µÎïÀíÉÏ²»¿ÉÄÜÔÚ 10ms ÄÚ½ÇËÙ¶ÈÍ»±ä 100 dps¡£ */
-    #define MPU6050_SPIKE_THRESHOLD_LSB       (13100)
-
-    /* Initializes GPIO-based (bit-banged) I2C on the configured pins and configures MPU6050 registers.
-     * Returns false if WHO_AM_I check fails.
-     */
-    bool MPU6050_Init(MPU6050_Handle *dev);
-
-    /* Calibrates gyro Z bias while the device is stationary.
-     * samples: number of samples to average.
-     * intervalMs: delay between samples.
-     */
-    bool MPU6050_CalibrateGyroZ(MPU6050_Handle *dev, uint16_t samples, uint16_t intervalMs);
-
-    /* Updates yaw by reading GYRO_ZOUT and integrating.
-     * Call periodically with current tick in ms (e.g. tick_ms).
-     * Internally rate-limited by dev->samplePeriodMs.
-     */
-    bool MPU6050_UpdateYaw(MPU6050_Handle *dev, uint32_t nowMs);
-
-    static inline float MPU6050_GetYawDeg(const MPU6050_Handle *dev)
-    {
-        return dev->yaw_deg;
-    }
-
-    static inline void MPU6050_ResetYaw(MPU6050_Handle *dev)
-    {
-        dev->yaw_deg = 0.0f;
-    }
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+#ifndef MPU6050_MSPM0_H
+#define MPU6050_MSPM0_H
+
+#include <stdbool.h>
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+    typedef struct
+    {
+        float gyroZBias_dps;        /* é›¶å (Â°/s)ï¼Œè¿è¡Œä¸­è‡ªé€‚åº”æ›´æ–° */
+        float yaw_deg;              /* ç´¯è®¡èˆªå‘è§’ (Â°) */
+
+        float gyroZFilt_dps;        /* ä½Žé€šæ»¤æ³¢åŽçš„é™€èžºä»ª Z è½´è§’é€Ÿåº¦ */
+
+        uint32_t lastUpdateMs;
+        uint16_t samplePeriodMs;
+        int16_t prevRawGyroZ;       /* ä¸Šä¸€å¸§åŽŸå§‹é™€èžºä»ª Z å€¼ï¼Œç”¨äºŽå°–å³°æ£€æµ‹ */
+    } MPU6050_Handle;
+
+    /* è‡ªé€‚åº”é›¶åè·Ÿè¸ªå‚æ•°ï¼ˆç§»æ¤è‡ª ICM-42686 æ–¹æ¡ˆï¼‰ */
+    #define MPU6050_GYRO_Z_DEADBAND_DPS      (0.15f) /* æ­»åŒºï¼šä½ŽäºŽæ­¤å€¼è§†ä¸ºå™ªå£°ï¼Œä¸ç§¯åˆ† */
+    #define MPU6050_GYRO_Z_BIAS_TRACK_DPS    (0.80f) /* åç½®è·Ÿè¸ªé˜ˆå€¼ï¼šä½ŽäºŽæ­¤å€¼è®¤ä¸º"ä¸åœ¨è½¬å‘"ï¼Œæ›´æ–°é›¶å */
+    #define MPU6050_BIAS_ADAPT_ALPHA         (0.01f) /* é›¶åé€‚åº”é€ŸçŽ‡ï¼šè¶Šå°è·Ÿè¸ªè¶Šæ…¢ï¼Œè¶Šç¨³å®š */
+
+    /* å°–å³°æ£€æµ‹ï¼šç›¸é‚»ä¸¤æ¬¡åŽŸå§‹è¯»æ•°ç›¸å·®è¶…è¿‡æ­¤é˜ˆå€¼è§†ä¸º I2C å¹²æ‰°ï¼Œä¸¢å¼ƒå½“å¸§ã€‚
+     * 100 dps Ã— 131 LSB/(dps) â‰ˆ 13100 LSBã€‚å°è½¦ç‰©ç†ä¸Šä¸å¯èƒ½åœ¨ 10ms å†…è§’é€Ÿåº¦çªå˜ 100 dpsã€‚ */
+    #define MPU6050_SPIKE_THRESHOLD_LSB       (13100)
+
+    /* Initializes GPIO-based (bit-banged) I2C on the configured pins and configures MPU6050 registers.
+     * Returns false if WHO_AM_I check fails.
+     */
+    bool MPU6050_Init(MPU6050_Handle *dev);
+
+    /* Calibrates gyro Z bias while the device is stationary.
+     * samples: number of samples to average.
+     * intervalMs: delay between samples.
+     */
+    bool MPU6050_CalibrateGyroZ(MPU6050_Handle *dev, uint16_t samples, uint16_t intervalMs);
+
+    /* Updates yaw by reading GYRO_ZOUT and integrating.
+     * Call periodically with current tick in ms (e.g. tick_ms).
+     * Internally rate-limited by dev->samplePeriodMs.
+     */
+    bool MPU6050_UpdateYaw(MPU6050_Handle *dev, uint32_t nowMs);
+
+    static inline float MPU6050_GetYawDeg(const MPU6050_Handle *dev)
+    {
+        return dev->yaw_deg;
+    }
+
+    static inline void MPU6050_ResetYaw(MPU6050_Handle *dev)
+    {
+        dev->yaw_deg = 0.0f;
+    }
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

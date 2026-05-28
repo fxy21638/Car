@@ -1,29 +1,29 @@
 #include "PID.h"
 
 /**
- * @brief  PID³õÊ¼»¯
- * @param  pid: PID½á¹¹ÌåÖ¸Õë
- * @param  Kp: ±ÈÀıÏµÊı
- * @param  Ki: »ı·ÖÏµÊı
- * @param  Kd: Î¢·ÖÏµÊı
- * @param  output_max: Êä³ö×î´óÖµ
- * @param  output_min: Êä³ö×îĞ¡Öµ
- * @param  sum_max: »ı·ÖÏŞ·ù£¨½¨ÒéÎªÊä³ö·¶Î§µÄ1/5~1/3£©
- * @param  filter_alpha: Îó²îÂË²¨ÏµÊı£¨0.1~0.3£¬Ğ¡³µÍÆ¼ö0.2£©
+ * @brief  PIDåˆå§‹åŒ–
+ * @param  pid: PIDç»“æ„ä½“æŒ‡é’ˆ
+ * @param  Kp: æ¯”ä¾‹ç³»æ•°
+ * @param  Ki: ç§¯åˆ†ç³»æ•°
+ * @param  Kd: å¾®åˆ†ç³»æ•°
+ * @param  output_max: è¾“å‡ºæœ€å¤§å€¼
+ * @param  output_min: è¾“å‡ºæœ€å°å€¼
+ * @param  sum_max: ç§¯åˆ†é™å¹…ï¼ˆå»ºè®®ä¸ºè¯¯å·®èŒƒå›´çš„1/5~1/3ï¼‰
+ * @param  filter_alpha: ä½é€šæ»¤æ³¢ç³»æ•°ï¼ˆ0.1~0.3ï¼Œæ¨è0.2ï¼‰
  */
-void PID_Init(PID_t *pid, float Kp, float Ki, float Kd, 
+void PID_Init(PID_t *pid, float Kp, float Ki, float Kd,
              float output_max, float output_min, float sum_max, float filter_alpha) {
-    // ³õÊ¼»¯²ÎÊı
+    // åˆå§‹åŒ–å‚æ•°
     pid->Kp = Kp;
     pid->Ki = Ki;
     pid->Kd = Kd;
     pid->output_max = output_max;
     pid->output_min = output_min;
     pid->sum_max = sum_max;
-    pid->filter_alpha = (filter_alpha > 1.0f) ? 1.0f : 
+    pid->filter_alpha = (filter_alpha > 1.0f) ? 1.0f :
                        (filter_alpha < 0.0f) ? 0.0f : filter_alpha;
-    
-    // ³õÊ¼»¯×´Ì¬±äÁ¿
+
+    // åˆå§‹åŒ–çŠ¶æ€å˜é‡
     pid->target = 0.0f;
     pid->actual = 0.0f;
     pid->err = 0.0f;
@@ -35,39 +35,39 @@ void PID_Init(PID_t *pid, float Kp, float Ki, float Kd,
 }
 
 /**
- * @brief  PID¸üĞÂ£¨ºËĞÄ¿ØÖÆÂß¼­£©
- * @note   ĞèÔÚ¶¨Ê±ÖĞ¶ÏÖĞµ÷ÓÃ£¨Èç10msÒ»´Î£©
- * @param  pid: PID½á¹¹ÌåÖ¸Õë
+ * @brief  PIDæ›´æ–°ï¼ˆæ ¸å¿ƒæ§åˆ¶é€»è¾‘ï¼‰
+ * @note   åœ¨å®šæ—¶ä¸­æ–­ä¸­è°ƒç”¨ï¼ˆå¦‚10msä¸€æ¬¡ï¼‰
+ * @param  pid: PIDç»“æ„ä½“æŒ‡é’ˆ
  */
 void PID_Update(PID_t *pid) {
-    // 1. ¼ÆËãµ±Ç°Îó²î£¨Î´ÂË²¨£©
+    // 1. è®¡ç®—å½“å‰è¯¯å·®ï¼ˆæœªæ»¤æ³¢ï¼‰
     pid->err = pid->target - pid->actual;
-    
-    // 2. Îó²îÒ»½×µÍÍ¨ÂË²¨£¨¼õÉÙÔëÉù¸ÉÈÅ£©
+
+    // 2. ä¸€é˜¶ä½é€šæ»¤æ³¢ï¼ˆæŠ‘åˆ¶é«˜é¢‘å™ªå£°ï¼‰
     pid->err_filtered = pid->filter_alpha * pid->err + (1 - pid->filter_alpha) * pid->err_filtered;
-    
-    // 3. ¼ÆËãÎ¢·Ö£¨»ùÓÚÂË²¨ºóµÄÎó²î±ä»¯ÂÊ£©
+
+    // 3. è®¡ç®—å¾®åˆ†ï¼ˆæ»¤æ³¢åçš„è¯¯å·®å˜åŒ–ç‡ï¼‰
     pid->diff = pid->err_filtered - pid->err_last;
-    pid->err_last = pid->err_filtered; // ±£´æµ±Ç°ÂË²¨Îó²îÓÃÓÚÏÂ´Î¼ÆËã
-    
-    // 4. ¼ÆËã»ı·Ö£¨´ø¿¹±¥ºÍ´¦Àí£ºÊä³öÏŞ·ùÊ±Í£Ö¹»ı·Ö£©
-    if (!(pid->output >= pid->output_max && pid->err_filtered > 0) && 
+    pid->err_last = pid->err_filtered; // ä¿å­˜å½“å‰æ»¤æ³¢è¯¯å·®ä¾›ä¸‹æ¬¡è®¡ç®—
+
+    // 4. è®¡ç®—ç§¯åˆ†ï¼ˆç§¯åˆ†åˆ†ç¦»ï¼šè¾“å‡ºè¶…é™æ—¶åœæ­¢ç§¯åˆ†ï¼‰
+    if (!(pid->output >= pid->output_max && pid->err_filtered > 0) &&
         !(pid->output <= pid->output_min && pid->err_filtered < 0)) {
         pid->err_sum += pid->err_filtered;
-        // »ı·ÖÏŞ·ù£¨·ÀÖ¹»ı·Ö±¥ºÍ£©
+        // ç§¯åˆ†é™å¹…ï¼ˆé˜²æ­¢ç§¯åˆ†é¥±å’Œï¼‰
         if (pid->err_sum > pid->sum_max) {
             pid->err_sum = pid->sum_max;
         } else if (pid->err_sum < -pid->sum_max) {
             pid->err_sum = -pid->sum_max;
         }
     }
-    
-    // 5. ¼ÆËãPIDÊä³ö
-    pid->output = pid->Kp * pid->err_filtered +  // ±ÈÀıÏî£¨ÂË²¨ºóÎó²î£¬¼õÉÙÕğµ´£©
-                 pid->Ki * pid->err_sum +        // »ı·ÖÏî£¨Ïû³ı¾²Ì¬Îó²î£©
-                 pid->Kd * pid->diff;            // Î¢·ÖÏî£¨ÒÖÖÆ³¬µ÷£©
-    
-    // 6. Êä³öÏŞ·ù£¨È·±£ÔÚPWMÓĞĞ§·¶Î§£©
+
+    // 5. è®¡ç®—PIDè¾“å‡º
+    pid->output = pid->Kp * pid->err_filtered +  // æ¯”ä¾‹é¡¹ï¼ˆæ»¤æ³¢åè¯¯å·®ï¼ŒæŠ—éœ‡è¡ï¼‰
+                 pid->Ki * pid->err_sum +        // ç§¯åˆ†é¡¹ï¼ˆæ¶ˆé™¤ç¨³æ€è¯¯å·®ï¼‰
+                 pid->Kd * pid->diff;            // å¾®åˆ†é¡¹ï¼ˆæŠ‘åˆ¶è¶…è°ƒï¼‰
+
+    // 6. è¾“å‡ºé™å¹…ï¼ˆç¡®ä¿PWMæœ‰æ•ˆèŒƒå›´ï¼‰
     if (pid->output > pid->output_max) {
         pid->output = pid->output_max;
     } else if (pid->output < pid->output_min) {
@@ -76,8 +76,8 @@ void PID_Update(PID_t *pid) {
 }
 
 /**
- * @brief  ÖØÖÃPID×´Ì¬£¨ÓÃÓÚĞ¡³µÆôÍ£Ê±ÇåÁã£©
- * @param  pid: PID½á¹¹ÌåÖ¸Õë
+ * @brief  é‡ç½®PIDçŠ¶æ€ï¼ˆæ€¥åœæˆ–åˆ‡æ¢æ¨¡å¼æ—¶è°ƒç”¨ï¼‰
+ * @param  pid: PIDç»“æ„ä½“æŒ‡é’ˆ
  */
 void PID_Reset(PID_t *pid) {
     pid->err = 0.0f;

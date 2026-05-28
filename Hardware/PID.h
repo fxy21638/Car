@@ -3,38 +3,38 @@
 
 #include "ti_msp_dl_config.h"
 
-// PID½á¹¹Ìå£º°üº¬ËùÓĞ²ÎÊıºÍ×´Ì¬±äÁ¿
+// PIDç»“æ„ä½“ï¼šåŒ…å«æ‰€æœ‰å‚æ•°å’ŒçŠ¶æ€å˜é‡
 typedef struct {
-    // PID²ÎÊı
-    float Kp;         // ±ÈÀıÏµÊı
-    float Ki;         // »ı·ÖÏµÊı
-    float Kd;         // Î¢·ÖÏµÊı
-    
-    // Ä¿±êÖµÓëÊµ¼ÊÖµ
-    float target;     // Ä¿±êÖµ£¨Èç£ºÂö³åÊı/10ms£©
-    float actual;     // Êµ¼ÊÖµ£¨±àÂëÆ÷·´À¡£©
-    
-    // Îó²îÏà¹Ø
-    float err;        // µ±Ç°Îó²î£¨target - actual£©
-    float err_last;   // ÉÏÒ»´ÎÎó²î£¨Î´ÂË²¨£©
-    float err_filtered; // ÂË²¨ºóµÄµ±Ç°Îó²î
-    float err_sum;    // Îó²î»ı·Ö£¨ÂË²¨ºó£©
-    float diff;       // Îó²î±ä»¯ÂÊ£¨ÂË²¨ºó£©
-    
-    // Êä³öÏŞÖÆ
-    float output;     // PIDÊä³ö£¨PWMÖµ£©
-    float output_max; // Êä³ö×î´óÖµ£¨Èç100£©
-    float output_min; // Êä³ö×îĞ¡Öµ£¨Èç-100£©
-    float sum_max;    // »ı·ÖÏŞ·ù£¨·ÀÖ¹±¥ºÍ£©
-    
-    // ÂË²¨ÏµÊı£¨Ò»½×µÍÍ¨ÂË²¨£©
-    float filter_alpha; // ÂË²¨ÏµÊı£¨0~1£¬Ô½´óÏìÓ¦Ô½¿ì£©
+    // PIDå‚æ•°
+    float Kp;         // æ¯”ä¾‹ç³»æ•°
+    float Ki;         // ç§¯åˆ†ç³»æ•°
+    float Kd;         // å¾®åˆ†ç³»æ•°
+
+    // ç›®æ ‡å€¼ä¸å®é™…å€¼
+    float target;     // ç›®æ ‡å€¼ï¼ˆå¦‚ï¼šå¢é‡/10msï¼‰
+    float actual;     // å®é™…å€¼ï¼ˆå½“å‰æµ‹é‡å€¼ï¼‰
+
+    // è¯¯å·®é‡
+    float err;        // å½“å‰è¯¯å·®ï¼ˆtarget - actualï¼‰
+    float err_last;   // ä¸Šä¸€æ¬¡è¯¯å·®ï¼ˆæœªæ»¤æ³¢ï¼‰
+    float err_filtered; // æ»¤æ³¢åçš„å½“å‰è¯¯å·®
+    float err_sum;    // è¯¯å·®ç§¯åˆ†ï¼ˆæ»¤æ³¢åï¼‰
+    float diff;       // è¯¯å·®å˜åŒ–ç‡ï¼ˆæ»¤æ³¢åï¼‰
+
+    // è¾“å‡ºé™å¹…
+    float output;     // PIDè¾“å‡ºï¼ˆPWMå€¼ï¼‰
+    float output_max; // è¾“å‡ºæœ€å¤§å€¼ï¼ˆå¦‚100ï¼‰
+    float output_min; // è¾“å‡ºæœ€å°å€¼ï¼ˆå¦‚-100ï¼‰
+    float sum_max;    // ç§¯åˆ†é™å¹…ï¼ˆé˜²ç§¯åˆ†é¥±å’Œï¼‰
+
+    // æ»¤æ³¢ç³»æ•°ï¼ˆä¸€é˜¶ä½é€šæ»¤æ³¢ï¼‰
+    float filter_alpha; // æ»¤æ³¢ç³»æ•°ï¼ˆ0~1ï¼Œè¶Šå°å“åº”è¶Šæ…¢ï¼‰
 } PID_t;
 
-// º¯ÊıÉùÃ÷
-void PID_Init(PID_t *pid, float Kp, float Ki, float Kd, 
+// æ¥å£å‡½æ•°
+void PID_Init(PID_t *pid, float Kp, float Ki, float Kd,
              float output_max, float output_min, float sum_max, float filter_alpha);
 void PID_Update(PID_t *pid);
-void PID_Reset(PID_t *pid); // ÖØÖÃPID×´Ì¬
+void PID_Reset(PID_t *pid); // é‡ç½®PIDçŠ¶æ€
 
 #endif
