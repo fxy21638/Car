@@ -1,4 +1,3 @@
-#include "ti_msp_dl_config.h"
 #include "Delay.h"
 
 volatile unsigned long tick_ms;

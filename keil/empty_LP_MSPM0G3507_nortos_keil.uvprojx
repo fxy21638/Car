@@ -539,6 +539,16 @@
               <FileType>5</FileType>
               <FilePath>.\Hardware\task.h</FilePath>
             </File>
+            <File>
+              <FileName>task_v2.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Hardware\task_v2.c</FilePath>
+            </File>
+            <File>
+              <FileName>task_v2.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Hardware\task_v2.h</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>

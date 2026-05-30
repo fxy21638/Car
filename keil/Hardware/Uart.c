@@ -1,7 +1,4 @@
 #include "Uart.h"
-#include "ti_msp_dl_config.h"
-#include <stdio.h>
-#include "Delay.h"
 
 extern int PWMleft, PWMright;
 extern int targetLeftSpeed, targetRightSpeed;

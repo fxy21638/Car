@@ -1,6 +1,4 @@
 #include "Ultrasonic.h"
-#include "ti_msp_dl_config.h"
-#include "Delay.h"
 
 /* ---- SysConfig 生成的宏 ----
  * TIMER_US_INST              → TIMG0

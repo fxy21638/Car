@@ -1,8 +1,9 @@
 #ifndef __KEY_H
 #define __KEY_H
 
-#include <stdint.h>
 #include "ti_msp_dl_config.h"
+#include <stdint.h>
+#include "Delay.h"
 
 void Key_Init(void);
 

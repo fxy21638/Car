@@ -1,7 +1,13 @@
 #include "MPU6050_MSPM0.h"
+#include "OLED.h"
+#include "Motor.h"
+#include "PID.h"
 
-#include "ti_msp_dl_config.h"
-#include "Delay.h"
+/* 供测试函数使用的外部变量 */
+extern uint8_t gMPU6050_OK;
+extern float yaw;
+extern volatile unsigned long tick_ms;
+extern MPU6050_Handle gImu;
 
 /* ---------------- MPU6050 registers ---------------- */
 #define MPU6050_ADDR_7BIT (0x68u)
@@ -407,4 +413,51 @@ bool MPU6050_UpdateYaw(MPU6050_Handle *dev, uint32_t nowMs)
         dev->yaw_deg += 360.0f;
 
     return true;
+}
+
+/* ================================================================
+ * 单元测试：MPU6050 + TurnToAngle 原地转向
+ *
+ * 用法：在 main() 的 while(1) 中只调用本函数。
+ *       while (1) { Test_MPU6050_TurnToAngle(); }
+ *
+ * 行为：车原地转到 +90°，到位后转到 -90°，如此循环。
+ *       OLED 显示 目标(Tgt) / 当前(Yaw) / 误差(Err)。
+ *       到位判定：|Err| < 5 度。
+ * ================================================================ */
+void Test_MPU6050_TurnToAngle(void)
+{
+    static int16_t target = 90;
+    float err;
+
+    MPU6050_UpdateYaw(&gImu, tick_ms);
+    yaw = MPU6050_GetYawDeg(&gImu);
+
+    err = (float)target - yaw;
+    while (err > 180.0f)  err -= 360.0f;
+    while (err < -180.0f) err += 360.0f;
+
+    if (err < 5.0f && err > -5.0f)
+        target = -target;
+
+    if (gMPU6050_OK)
+        TurnToAngle((float)target);
+    else
+        Set_PWM(0, 0);
+
+    if (!OLED_IsBusy())
+    {
+        int16_t y = (int16_t)yaw;
+        int16_t e = (int16_t)err;
+        OLED_Clear();
+        OLED_ShowString(0, 0, "== TURN TEST ==", OLED_8X16);
+        OLED_ShowString(0, 16, "Tgt:", OLED_8X16);
+        OLED_ShowSignedNum(32, 16, target, 4, OLED_8X16);
+        OLED_ShowString(0, 32, "Yaw:", OLED_8X16);
+        OLED_ShowSignedNum(32, 32, y, 4, OLED_8X16);
+        OLED_ShowString(0, 48, "Err:", OLED_8X16);
+        OLED_ShowSignedNum(32, 48, e, 4, OLED_8X16);
+        OLED_Update();
+    }
+    OLED_Task();
 }

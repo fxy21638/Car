@@ -1,5 +1,4 @@
 #include "Sensor.h"
-#include "OLED.h"
 
 #define step 10
 
@@ -55,9 +54,10 @@ int Sensor_GetState(int i)
 
 /* 赛道：白底黑线，Sensor_GetState 返回 1=白底 0=黑线。
  * sumPos = 白色区域加权中心，count = 黑线传感器数。
- * count==0 即全白，判定为丢线，触发原地旋转回找。 */
+ * count==0 即全白，连续 5 次判定为丢线，避免过弯/晃动时误触发。 */
 int Sensor_GetQuantizedPos(void)
 {
+    static int s_lostDebounce = 0;
     int sumPos = 0;
     int count = 0;
     for (int i = 0; i < 8; i++)
@@ -72,22 +72,27 @@ int Sensor_GetQuantizedPos(void)
 
     if (count == 0)
     {
-        sumPos = lastSumPos;
-        if (lastSumPos > 0)
-            is_lost = 1;
-        else if (lastSumPos < 0)
-            is_lost = -1;
-        else
-            is_lost = 0;
+        s_lostDebounce++;
+        if (s_lostDebounce >= 5)
+        {
+            if (lastSumPos > 0)
+                is_lost = 1;
+            else if (lastSumPos < 0)
+                is_lost = -1;
+            else
+                is_lost = 0;
 
-        if (BASE_SPEED > 0)
-            BASE_SPEED -= step;
+            if (BASE_SPEED > 0)
+                BASE_SPEED -= step;
+        }
+        sumPos = lastSumPos;
     }
     else
     {
+        s_lostDebounce = 0;
         lastSumPos = sumPos;
         is_lost = 0;
-        if (BASE_SPEED < 60)
+        if (BASE_SPEED < 80)
             BASE_SPEED += step;
     }
     return sumPos;

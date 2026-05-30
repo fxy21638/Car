@@ -1,5 +1,4 @@
 #include "Key.h"
-#include "Delay.h"
 
 /* ======================== 引脚配置（来自 SysConfig） ========================
  * 使用 ti_msp_dl_config.h 里生成的 Key_Pins_* 宏：

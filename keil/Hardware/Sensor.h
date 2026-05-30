@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "ti_msp_dl_config.h"
+#include "OLED.h"
 
 void Sensor_Init(void);
 int Sensor_GetState(int i);

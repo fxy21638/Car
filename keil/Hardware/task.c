@@ -1,10 +1,4 @@
 #include "task.h"
-#include "Delay.h"
-#include "Motor.h"
-#include "MPU6050_MSPM0.h"
-#include "PID.h"
-#include "Ultrasonic.h"
-#include <math.h>
 
 void SpeedLoop_Task(void);
 
@@ -295,4 +289,14 @@ void turn_Task_v2_Reset(void)
     g_turn2SearchAngle = 20;
     g_turn2Direction = 1;
     g_turn2SearchCount = 0;
+}
+
+/* ---- 对角线导航任务 (占位，待实现) ---- */
+void diagonal_Task(void)
+{
+    /* TODO: A→B→D→C→A 对角线导航 */
+}
+
+void diagonal_Task_Reset(void)
+{
 }

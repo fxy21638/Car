@@ -58,6 +58,11 @@ float Get_Current_Circles(void)
     return avg / (float)s_pulsesPerCircle;
 }
 
+int32_t Encoder_GetDistancePulses(void)
+{
+    return (int32_t)((s_totalCountA + (int32_t)(-s_totalCountB)) / 2);
+}
+
 /* ---- 速度采样 ISR (10ms 周期) ----
  * 读取编码器正交计数 → 差分速度 → 供 PID_control 速度环使用。
  * 右轮取反 (encoderB_cnt = -Get_Encoder_countB) 保证前进时为正。 */

@@ -1,6 +1,10 @@
 #ifndef __OLED_H
 #define __OLED_H
 
+#include "ti_msp_dl_config.h"
+#include <stdio.h>
+#include "string.h"
+#include <stdarg.h>
 #include "OLED_Data.h"
 
 /******************** 宏定义参数 ********************/

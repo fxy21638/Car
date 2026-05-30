@@ -30,7 +30,8 @@ car_02/
 
   keil/                    # [主构建] Keil MDK (ARMCLANG V6.21)
     Hardware/              #   扩展/覆盖模块 — 构建时优先链接此目录
-      task.c/h             #     任务层: 避障状态机, 对角线导航状态机
+      task.c/h             #     任务层: 避障状态机(v1), 对角线导航状态机
+      task_v2.c/h         #     避障状态机 v2 (编码器+MPU6050)
       PID.c                #     完整PID: PID_control, TurnToAngle, Angle_Control 等
       Encoder.c/h          #     编码器 (与根 Hardware/ 同步维护)
       ...                  #     其余文件与根 Hardware/ 同名，部分有差异
@@ -59,7 +60,7 @@ main() 超级循环:
   3. Key_GetPressed() 处理菜单输入
   4. 根据 g_menuState 和 g_running 选择控制模式:
      - PID_control()              任务1: 纯循线
-     - ObstacleAvoidance_Task()   任务2: 循线+避障
+     - ObstacleAvoidance_Task_v2()  任务2: 循线+避障 (v2: 编码器+MPU6050)
      - diagonal_Task()            任务3/4: 直线+对角线导航
   5. OLED 显示更新 (非阻塞)
 
@@ -91,7 +92,7 @@ main() 超级循环:
 | 任务 | 名称 | 圈数 | 代码路径 |
 | ---- | ---- | ---- | -------- |
 | 1 | 自动寻迹行驶 | 1-5圈可设 | `PID_control()` |
-| 2 | 寻迹避障行驶 | 1-5圈可设 | `ObstacleAvoidance_Task()` |
+| 2 | 寻迹避障行驶 | 1-5圈可设 | `ObstacleAvoidance_Task_v2()` |
 | 3 | 定点直线+对角线 | 固定1圈 | `diagonal_Task()` |
 | 4 | 指定路径多圈 | 固定4圈 | `diagonal_Task()` (同任务3) |
 
@@ -112,8 +113,8 @@ main() 超级循环:
 - 全程不得触碰障碍物
 - **避障后必须在到达拐角前回到边线**继续循迹
 - 圈数 1-5 可通过菜单设定，单圈 ≤ 25 秒
-- **实现**: `ObstacleAvoidance_Task()` — 6阶段避障状态机
-- 圈距: 比任务1略大（避障绕行路径更长）
+- **实现**: `ObstacleAvoidance_Task_v2()` — 编码器测距 + MPU6050 转角，不依赖延时（旧版 v1 保留在 `task.c`）
+- 圈距: 16000（比任务1略大，避障绕行路径更长）
 
 ### 任务3/4 — 定点直线+对角线行驶（核心难点）
 
@@ -166,7 +167,7 @@ D = 下方相邻顶点
 | 任务 | 默认每圈脉冲数 | 圈数来源 | 停车判断 |
 | ---- | -------------- | -------- | -------- |
 | 任务1 纯循线 | 13000 (正方形480cm，编码器×4) | 用户设定 `g_targetCircles` | `Get_Current_Circles() >= g_targetCircles` |
-| 任务2 循线+避障 | 18000 (绕行路径更长) | 用户设定 `g_targetCircles` | `Get_Current_Circles() >= g_targetCircles` |
+| 任务2 循线+避障 | 16000 (绕行路径更长) | 用户设定 `g_targetCircles` | `Get_Current_Circles() >= g_targetCircles` |
 | 任务3 对角线单程 | 不适用 | 固定 1 | `diagonal_Task()` 内部状态机 → `DIAG_DONE` |
 | 任务4 对角线4圈 | 不适用 | 固定 4 | `diagonal_Task()` 内部圈数计数器达4 → `DIAG_DONE` |
 
@@ -177,12 +178,13 @@ D = 下方相邻顶点
 ```c
 菜单切换任务时:
   任务1 → Encoder_SetPulsesPerCircle(13000)
-  任务2 → Encoder_SetPulsesPerCircle(18000)
-  任务3/4 → 不使用圈距，但可设一个占位值
+  任务2 → Encoder_SetPulsesPerCircle(16000)
+  任务3/4 → 不使用圈距
 
-启动运行时:
-  Encoder_ResetDistance()        // 清零累计脉冲
-  diagonal_Task_Reset()          // 对角线状态机复位 (仅任务3/4)
+启动运行时 (K4):
+  Encoder_ResetDistance()               // 清零累计脉冲
+  ObstacleAvoidance_Task_v2_Reset()     // 避障状态机复位 (仅任务2)
+  diagonal_Task_Reset()                 // 对角线状态机复位 (仅任务3/4)
 ```
 
 各任务的每圈脉冲数需在**实车标定**后填入。标定方法：让车在赛道上跑一圈，读取编码器累计脉冲值。
@@ -200,8 +202,8 @@ D = 下方相邻顶点
 | 函数 | 用途 |
 | ---- | ---- |
 | `PID_control()` | 标准循线: steerPID(转向) + leftPID/rightPID(速度闭环) |
-| `PID_control_head(l,r)` | 纯速度环: 左右轮独立速度控制，无转向干预 |
-| `TurnToAngle(targetDeg)` | 角度环: 用 anglePID 控制小车转到目标偏航角 |
+| `PID_control_head(l,r)` | 纯速度环: 左右轮独立速度控制，无转向干预（避障直行/寻线阶段使用） |
+| `TurnToAngle(targetDeg)` | 角度环: 用 anglePID 控制小车转到目标偏航角（非阻塞，需每帧调用） |
 | `Angle_Control(target, actual)` | 角度PID单步计算，返回 steer 值 |
 
 ## 圈距配置
@@ -209,8 +211,50 @@ D = 下方相邻顶点
 圈数通过编码器脉冲累计值计算: `圈数 = 累计脉冲 / 每圈脉冲数`。
 
 - `Encoder_SetPulsesPerCircle(uint32_t pulses)` — 切换任务时设置不同圈距
-- `Encoder_ResetDistance()` — 启动运行时清零累计脉冲
+- `Encoder_ResetDistance()` — 启动运行时清零累计脉冲（仅开跑时调用，避障状态机内禁止调用）
+- `Encoder_GetDistancePulses()` — 返回原始累计脉冲数，用于阶段内距离增量比较
 - `Get_Current_Circles()` — 返回当前圈数 (float)
+
+## 避障 v2 状态机 (keil/Hardware/task_v2.c)
+
+旧版 v1 (`ObstacleAvoidance_Task`) 以固定延时驱动各阶段，电压波动导致实际行走距离不一致。v2 全部改用编码器脉冲计距 + MPU6050 `TurnToAngle()` 非阻塞转角。
+
+### 轨迹 (右避障)
+
+障碍物在线右侧，小车从右侧绕过：
+
+```
+  右转45° → 直行绕过 → 左转90° → 直行寻线归位
+```
+
+### 6 阶段
+
+| 阶段 | 行为 | 触发下一阶段条件 |
+|------|------|-----------------|
+| `AVOID2_IDLE` | 正常循线 `PID_control()` | 超声波 `dist < 25cm` |
+| `AVOID2_STOP` | 停车，记录 `origin_yaw`，快照编码器 | 立即 |
+| `AVOID2_TURN_RIGHT` | `TurnToAngle(origin_yaw + 45°)` | `|err| < 5°` |
+| `AVOID2_FORWARD` | `PID_control_head(60,60)` 直行 | 编码器增量 > 1350 脉冲 |
+| `AVOID2_TURN_LEFT` | `TurnToAngle(origin_yaw - 45°)`（实际左转 90°） | `|err| < 5°` |
+| `AVOID2_SEEK_LINE` | `PID_control_head(60,60)` 寻线 | `is_lost==0` 找到线，或超时 2500 脉冲 |
+
+### 关键设计
+
+- **不调用 `Encoder_ResetDistance()`**：各阶段用 `g_segmentStartPulses` 快照编码器值，比较增量 `Encoder_GetDistancePulses() - g_segmentStartPulses > 阈值`。累计圈数不受影响。
+- **`TurnToAngle()` 非阻塞**：每帧调用一次，状态机自行检查收敛（`angle_diff()` 归一化到 ±180°）。
+- **寻线超时保护**：SEEK_LINE 阶段最多走 2500 脉冲后强制回 IDLE，防止无限寻线。
+
+### 可调参数
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `AVOID_TURN_DEG` | 45 | 右转避开角度 (度) |
+| `AVOID_RETURN_DEG` | 45 | 左转回线角度 (度) |
+| `AVOID_DIST_PULSES` | 1350 | 绕障直行距离 (编码器脉冲) |
+| `AVOID_SPEED` | 60 | 避障期间直行速度 (0~100) |
+| `AVOID_OBSTACLE_CM` | 25 | 超声波障碍检测阈值 (厘米) |
+| `AVOID_CONVERGE_THRESH` | 5.0f | 转向到位判定阈值 (度) |
+| `AVOID_SEEK_MAX_PULSES` | 2500 | 寻线阶段最大距离，超时放弃 |
 
 ## 引脚分配
 
@@ -253,6 +297,12 @@ D = 下方相邻顶点
 
 **定时器占用的确认：** TIMG0 仅用于超声波，不与任何其他外设冲突。中断优先级 0=编码器GPIO、1=编码器TIMA0、2=超声波TIMG0。
 
+## OLED 限制
+
+- SSD1306 128×64，`OLED_8X16` 字体下最多显示 **4 行**（Y 坐标 0, 16, 32, 48）
+- 每行最多 128 像素宽：中文字符约 16px 宽，ASCII 约 8px 宽
+- 混排时最多约 **16 个 ASCII 或 8 个中文**（或按比例混合），超出会乱码
+
 ## 菜单系统
 
 状态机: `MENU_MAIN → MENU_SET_LAPS / MENU_TASK_SEL → MENU_RUNNING`
@@ -271,6 +321,7 @@ K1 在任何状态下均触发急停：`g_running = 0`, `Set_PWM(0,0)`, 返回 `
 - 源文件编码: **UTF-8** (部分文件原为GBK，已转换)
 - 注释语言: 中文
 - 缩进: 4空格
+- **Git 提交信息使用中文**
 
 ## 重要：修改代码时保护中文注释
 
@@ -295,5 +346,9 @@ K1 在任何状态下均触发急停：`g_running = 0`, `Set_PWM(0,0)`, 返回 `
 3. **主循环无固定周期**。代码中注释掉了 `Delay_ms(10)`，实际运行频率取决于各模块耗时。
 4. **OLED 和 MPU6050 共用软件 I2C 总线**，需注意访问冲突。
 5. **`ultrasonic-gpio-oled-hardware-i2c/` 是独立子项目**，有自己的 main.c，不参与主构建。
-6. **双版本 Encoder**：根和 keil 的 `Hardware/Encoder.c` 均已使用 `s_totalCountA/B` 累计脉冲（不清零）来计算圈数，`Get_Encoder_countA/B` 仅用于每 10ms 的速度采样。两者各有 `Encoder_SetPulsesPerCircle()` 接口，函数签名相同。
+6. **双版本 Encoder**：根和 keil 的 `Hardware/Encoder.c` 均已使用 `s_totalCountA/B` 累计脉冲（不清零）来计算圈数，`Get_Encoder_countA/B` 仅用于每 10ms 的速度采样。两者各有 `Encoder_SetPulsesPerCircle()` 和 `Encoder_GetDistancePulses()` 接口，函数签名相同。
 7. **任务3/4 的惯性导航依赖 MPU6050 偏航角精度**。陀螺仪零偏标定 (`MPU6050_CalibrateGyroZ`) 对对角线精度至关重要。
+8. **单元测试函数**：`Test_MPU6050_TurnToAngle()` 位于 `keil/Hardware/MPU6050_MSPM0.c`，声明于 `MPU6050_MSPM0.h`。用于独立测试 MPU6050 + TurnToAngle 原地转向（+90°/-90° 循环）。用法：在 `main()` 的 `while(1)` 中替换为 `while(1) { Test_MPU6050_TurnToAngle(); }`。测试结束后恢复原循环体即可。
+9. **避障 v2 不得调用 `Encoder_ResetDistance()`**：各阶段用 `Encoder_GetDistancePulses()` 快照 + 差值比较的方式计距，否则会破坏累计圈数。
+10. **丢线消抖**：`keil/Hardware/Sensor.c` 和 `Hardware/Sensor.c` 均已加入 5 次连续 `count==0` 消抖，防止避障回正后晃动导致误触发丢线自转。
+11. **`task_v2.c` 需加入 Keil 工程**：新增源文件需手动在 Keil MDK 中添加。

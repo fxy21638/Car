@@ -6,7 +6,7 @@ PID_t rightPID;
 PID_t steerPID;
 PID_t anglePID;
 
-int BASE_SPEED = 60;
+int BASE_SPEED = 80;
 int linePos = 0;
 int lastSumPos = 0;
 int is_lost = 0;
@@ -22,24 +22,41 @@ char sensorStr[9];
 MPU6050_Handle gImu;
 uint8_t gMPU6050_OK = 0;
 
+/* 四项比赛任务 */
+typedef enum
+{
+    TASK_TRACE = 0,   /* 任务1: 纯循线 */
+    TASK_AVOID,       /* 任务2: 循线避障 */
+    TASK_DIAG_1,      /* 任务3: 对角线 1圈 */
+    TASK_DIAG_4       /* 任务4: 对角线 4圈 */
+} TaskType;
+
+static const char *g_taskNames[4] = {
+    "Trace",
+    "Avoid",
+    "Diag 1",
+    "Diag 4"
+};
+
 typedef enum
 {
     MENU_MAIN = 0,
+    MENU_TASK_SEL,
     MENU_SET_LAPS,
     MENU_RUNNING,
-    MENU_AVOID,
     MENU_MPU_DEBUG
 } MenuState;
 
 static MenuState g_menuState = MENU_MAIN;
-static uint8_t g_avoidEnable = 0;
-static uint8_t g_turnEnable = 0;
+static TaskType g_taskType = TASK_TRACE;
 static uint8_t g_running = 0;
 static uint8_t g_targetCircles = 1;
+static uint8_t g_lastUserLaps = 1;   /* 任务1/2 的用户设定圈数，切换任务时恢复 */
 
 void OlED_show(void);
 void System_Init(void);
 static void Handle_Keys(void);
+static void TaskSwitchConfig(TaskType task);
 
 int main(void)
 {
@@ -51,54 +68,44 @@ int main(void)
         /* 读取循迹传感器位置 */
          linePos = Sensor_GetQuantizedPos();
 
-        // PID_control();
+        /* 超声波非阻塞测距（始终运行） */
+        Ultrasonic_Task(tick_ms);
+        dist = Ultrasonic_GetDistanceCm();
 
-        /* 超声波非阻塞测距 */
-		if(g_avoidEnable)
-		{
-			Ultrasonic_Task(tick_ms);
-			dist = Ultrasonic_GetDistanceCm();
-		}
+        /* 更新 MPU6050 Yaw（始终运行，供对角线任务用） */
+        MPU6050_UpdateYaw(&gImu, tick_ms);
+        yaw = MPU6050_GetYawDeg(&gImu);
 
-        /* 更新 MPU6050 Yaw（如果转向功能开启） */
-        if (g_turnEnable)
+        if (!g_running)
         {
-            MPU6050_UpdateYaw(&gImu, tick_ms);
-            yaw = MPU6050_GetYawDeg(&gImu);
+            Handle_Keys();
         }
-		if(!g_running)
-		{
-			Handle_Keys();
-		}
 
         if (g_running)
         {
-            if (Get_Current_Circles() >= g_targetCircles)
+            /* 根据任务类型选择控制函数 */
+            if (g_taskType == TASK_TRACE)
+                PID_control();
+            else if (g_taskType == TASK_AVOID)
+                ObstacleAvoidance_Task_v2();
+            else  /* TASK_DIAG_1 / TASK_DIAG_4 */
+                diagonal_Task();
+
+            /* 停车判断：仅任务1/2 用编码器圈数 */
+            if (g_taskType <= TASK_AVOID)
             {
-                g_running = 0;
-                Set_PWM(0, 0); /* 达到目标圈数，停止 */
-            }
-            else
-            {
-                if (g_avoidEnable)
+                if (Get_Current_Circles() >= g_targetCircles)
                 {
-                    ObstacleAvoidance_Task(tick_ms);
-                }
-                else if (g_turnEnable)
-                {
-                    turn_Task();
-                }
-                else
-                {
-                    PID_control();
+                    g_running = 0;
+                    Set_PWM(0, 0);
                 }
             }
         }
         else
         {
-            Set_PWM(0, 0); /* 停止电机 */
+            Set_PWM(0, 0);
         }
-		
+
         if (!OLED_IsBusy())
         {
             OlED_show();
@@ -107,51 +114,60 @@ int main(void)
 
         //VOFA_SendSpeedLoop();
 
-        //Delay_ms(10); /* 固定循环周期，保证 MPU6050 与 OLED I2C 总线不冲突 */
+        //Delay_ms(10);
     }
 }
 
 void OlED_show(void)
 {
-    /* 根据菜单状态刷新 OLED 页面。 */
     OLED_Clear();
 
     if (g_menuState == MENU_MAIN)
     {
-        OLED_ShowString(0, 0, "=== MAIN MENU ===", OLED_8X16);
-        OLED_ShowString(0, 16, "K2:Set Laps", OLED_8X16);
-        OLED_ShowString(0, 32, "K3:Mode Change", OLED_8X16);
-        OLED_ShowString(0, 48, "K4:Start Run", OLED_8X16);
+        OLED_ShowString(0, 0, "=== MAIN ===", OLED_8X16);
+        OLED_ShowString(0, 16, (char *)g_taskNames[g_taskType], OLED_8X16);
+        OLED_ShowString(72, 16, "L:", OLED_8X16);
+        OLED_ShowSignedNum(88, 16, g_targetCircles, 1, OLED_8X16);
+        OLED_ShowString(0, 32, "K2:Sel K3:Lap", OLED_8X16);
+        OLED_ShowString(0, 48, "K4:Run", OLED_8X16);
+    }
+    else if (g_menuState == MENU_TASK_SEL)
+    {
+        OLED_ShowString(0, 0, "== SEL TASK ==", OLED_8X16);
+        OLED_ShowString(0, 16, ">", OLED_8X16);
+        OLED_ShowString(16, 16, (char *)g_taskNames[g_taskType], OLED_8X16);
+        OLED_ShowString(0, 48, "K2/3:Chg K4:OK", OLED_8X16);
     }
     else if (g_menuState == MENU_SET_LAPS)
     {
-        OLED_ShowString(0, 0, "=== SET LAPS ===", OLED_8X16);
+        OLED_ShowString(0, 0, "== SET LAPS ==", OLED_8X16);
         OLED_ShowString(0, 16, "Laps:", OLED_8X16);
         OLED_ShowSignedNum(48, 16, g_targetCircles, 2, OLED_8X16);
         OLED_ShowString(0, 32, "K2:+ K3:-", OLED_8X16);
-        OLED_ShowString(0, 48, "K1/K4:Back", OLED_8X16);
+        OLED_ShowString(0, 48, "K4:OK", OLED_8X16);
     }
     else if (g_menuState == MENU_RUNNING)
     {
-        OLED_ShowString(0, 0, "=== RUNNING ===", OLED_8X16);
-        OLED_ShowString(0, 16, "yaw:", OLED_8X16);
-        OLED_ShowSignedNum(40, 16, yaw, 6, OLED_8X16);
-        OLED_ShowString(0, 32, "yaw_o:", OLED_8X16);
-        OLED_ShowSignedNum(48, 32, origin_yaw, 2, OLED_8X16);
+        OLED_ShowString(0, 0, (char *)g_taskNames[g_taskType], OLED_8X16);
+
+        if (g_taskType <= TASK_AVOID)
+        {
+            OLED_ShowString(0, 16, "Lap:", OLED_8X16);
+            OLED_ShowNum(32, 16, (uint32_t)Get_Current_Circles(), 1, OLED_8X16);
+            OLED_ShowString(40, 16, "/", OLED_8X16);
+            OLED_ShowNum(48, 16, g_targetCircles, 1, OLED_8X16);
+        }
+
+        OLED_ShowString(0, 32, "Spd:", OLED_8X16);
+        OLED_ShowNum(32, 32, BASE_SPEED, 2, OLED_8X16);
+        OLED_ShowString(56, 32, "Dis:", OLED_8X16);
+        OLED_ShowSignedNum(88, 32, dist, 4, OLED_8X16);
+
         OLED_ShowString(0, 48, "K1:Stop", OLED_8X16);
-    }
-    else if (g_menuState == MENU_AVOID)
-    {
-        OLED_ShowString(0, 0, "=== AVOID ===", OLED_8X16);
-        OLED_ShowString(0, 16, g_avoidEnable ? "Status: ON " : "Status: OFF",
-                        OLED_8X16);
-        OLED_ShowString(0, 32, "Dis:", OLED_8X16);
-        OLED_ShowSignedNum(32, 32, dist, 4, OLED_8X16);
-        OLED_ShowString(0, 48, "K2/3:Tog K4:Back", OLED_8X16);
     }
     else if (g_menuState == MENU_MPU_DEBUG)
     {
-        OLED_ShowString(0, 0, "=== MPU6050 ===", OLED_8X16);
+        OLED_ShowString(0, 0, "== MPU6050 ==", OLED_8X16);
         if (!gMPU6050_OK)
         {
             OLED_ShowString(0, 16, "Status: FAIL", OLED_8X16);
@@ -160,18 +176,36 @@ void OlED_show(void)
         else
         {
             int16_t yaw_int = (int16_t) yaw;
-
             OLED_ShowString(0, 16, "Yaw(deg):", OLED_8X16);
             OLED_ShowSignedNum(90, 16, yaw_int, 4, OLED_8X16);
-            OLED_ShowString(0, 32,
-                            g_turnEnable ? "Status: ON " : "Status: OFF",
-                            OLED_8X16);
-            OLED_ShowString(0, 48, "K2/3:Tog K4:Back", OLED_8X16);
         }
         OLED_ShowString(0, 48, "K4:Back", OLED_8X16);
     }
 
     OLED_Update();
+}
+
+/* 任务切换时自动配置圈距和圈数 */
+static void TaskSwitchConfig(TaskType task)
+{
+    g_taskType = task;
+    switch (task)
+    {
+    case TASK_TRACE:
+        Encoder_SetPulsesPerCircle(13000);
+        g_targetCircles = g_lastUserLaps;
+        break;
+    case TASK_AVOID:
+        Encoder_SetPulsesPerCircle(16000);
+        g_targetCircles = g_lastUserLaps;
+        break;
+    case TASK_DIAG_1:
+        g_targetCircles = 1;
+        break;
+    case TASK_DIAG_4:
+        g_targetCircles = 4;
+        break;
+    }
 }
 
 static void Handle_Keys(void)
@@ -181,34 +215,53 @@ static void Handle_Keys(void)
     uint8_t k3 = Key_GetPressed(2);
     uint8_t k4 = Key_GetPressed(3);
 
-    /* K1 统一作为急停 / 返回主菜单。 */
+    /* K1 急停/回主菜单 */
     if (k1)
     {
         g_menuState = MENU_MAIN;
         g_running = 0;
         Set_PWM(0, 0);
+        return;
     }
-    else if (g_menuState == MENU_MAIN)
+
+    if (g_menuState == MENU_MAIN)
     {
         if (k2)
         {
-            g_menuState = MENU_SET_LAPS;
+            g_menuState = MENU_TASK_SEL;
         }
         else if (k3)
         {
-            g_menuState = MENU_AVOID;
+            /* 任务3/4 固定圈数，不进入设置页 */
+            if (g_taskType <= TASK_AVOID)
+                g_menuState = MENU_SET_LAPS;
         }
         else if (k4)
         {
+            Encoder_ResetDistance();
+            if (g_taskType == TASK_AVOID)
+                ObstacleAvoidance_Task_v2_Reset();
+            else if (g_taskType >= TASK_DIAG_1)
+                diagonal_Task_Reset();
             g_menuState = MENU_RUNNING;
             g_running = 1;
         }
     }
-    else if (g_menuState == MENU_MPU_DEBUG)
+    else if (g_menuState == MENU_TASK_SEL)
     {
-        if (k2 || k3)
+        if (k2)
         {
-            g_turnEnable = !g_turnEnable;
+            if (g_taskType > 0)
+                TaskSwitchConfig((TaskType)(g_taskType - 1));
+            else
+                TaskSwitchConfig(TASK_DIAG_4);   /* 循环到头 */
+        }
+        else if (k3)
+        {
+            if (g_taskType < TASK_DIAG_4)
+                TaskSwitchConfig((TaskType)(g_taskType + 1));
+            else
+                TaskSwitchConfig(TASK_TRACE);     /* 循环到头 */
         }
         else if (k4)
         {
@@ -220,16 +273,16 @@ static void Handle_Keys(void)
         if (k2)
         {
             g_targetCircles++;
-            if (g_targetCircles > 99)
-            {
-                g_targetCircles = 99;
-            }
+            if (g_targetCircles > 5)
+                g_targetCircles = 5;
+            g_lastUserLaps = g_targetCircles;
         }
         else if (k3)
         {
             if (g_targetCircles > 1)
             {
                 g_targetCircles--;
+                g_lastUserLaps = g_targetCircles;
             }
         }
         else if (k4)
@@ -237,13 +290,9 @@ static void Handle_Keys(void)
             g_menuState = MENU_MAIN;
         }
     }
-    else if (g_menuState == MENU_AVOID)
+    else if (g_menuState == MENU_MPU_DEBUG)
     {
-        if (k2 || k3)
-        {
-            g_avoidEnable = !g_avoidEnable;
-        }
-        else if (k4)
+        if (k4)
         {
             g_menuState = MENU_MAIN;
         }
@@ -290,6 +339,10 @@ void System_Init(void)
     /* 控制器默认参数 */
     PID_Init(&leftPID, 2.5f, 0.16f, 0.0f, 100, -100, 35, 0.2f);
     PID_Init(&rightPID, 2.8f, 0.16f, 0.0f, 100, -100, 35, 0.2f);
-    PID_Init(&steerPID, 1.1f, 0.0f, 0.1f, 80, -80, 20, 0.7f);
-    PID_Init(&anglePID, 0.8f, 0.3f, 0.5f, 24, -24, 30, 0.7f);
+    PID_Init(&steerPID, 0.8f, 0.02f, 0.2f, 80, -80, 30, 0.7f);
+    PID_Init(&anglePID, 0.8f, 0.3f, 0.5f, 40, -40, 30, 0.7f);
+
+    /* 默认任务配置，确保Encoder圈距同步 */
+    TaskSwitchConfig(TASK_TRACE);
 }
+

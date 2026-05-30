@@ -1,4 +1,3 @@
-#include "ti_msp_dl_config.h"
 #include "Encoder.h"
 
 // 全局变量（与官方例程格式一致）
@@ -48,6 +47,11 @@ float Get_Current_Circles(void)
 {
     float avg = (s_totalCountA + (-s_totalCountB)) / 2.0f;
     return avg / (float)s_pulsesPerCircle;
+}
+
+int32_t Encoder_GetDistancePulses(void)
+{
+    return (int32_t)((s_totalCountA + (int32_t)(-s_totalCountB)) / 2);
 }
 
 /* ---- 速度采样 ISR (10ms 周期) ----

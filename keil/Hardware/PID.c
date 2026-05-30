@@ -191,8 +191,8 @@ void TurnToAngle(float targetYawDeg)
 
     float steer = Angle_Control(0.0f, err); /* anglePID: 角度误差→转向量 */
 
-    targetLeftSpeed = BASE_SPEED + (int)steer;
-    targetRightSpeed = BASE_SPEED - (int)steer;
+    targetLeftSpeed =  +(int)steer;
+    targetRightSpeed = -(int)steer;
 
     leftPID.target = targetLeftSpeed;
     rightPID.target = targetRightSpeed;

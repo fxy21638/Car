@@ -1,5 +1,4 @@
 #include "Motor.h"
-#include <stdlib.h>
 
 #define PWM_PERIOD 1000
 

@@ -1,8 +1,4 @@
 #include "OLED.h"
-#include "ti_msp_dl_config.h"
-#include <stdio.h>
-#include "string.h"
-#include <stdarg.h>
 
 #define Soft_OLED_I2C // 使用软件I2C
 // #define Hard_OLED_I2C   // 使用硬件I2C

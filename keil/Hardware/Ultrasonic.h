@@ -1,6 +1,8 @@
 #ifndef __ULTRASONIC_H
 #define __ULTRASONIC_H
 
+#include "ti_msp_dl_config.h"
+#include "Delay.h"
 #include <stdint.h>
 #include <stdbool.h>
 
