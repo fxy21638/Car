@@ -7,5 +7,6 @@
 void Sensor_Init(void);
 int Sensor_GetState(int i);
 int Sensor_GetQuantizedPos(void);
+void Sensor_ShowDebug(void);
 
 #endif

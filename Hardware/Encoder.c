@@ -16,7 +16,7 @@ static volatile int32_t s_totalCountB = 0;
 extern int leftEncSpeed; // 给主程序PID用
 extern int rightEncSpeed;
 
-#define PULSE_PER_CIRCLE 26666
+static uint32_t s_pulsesPerCircle = 13000;
 
 // 编码器初始化
 void Encoder_Init(void)
@@ -55,22 +55,21 @@ float Get_Current_Circles(void)
      * 这里保持一致：把累计值也转换到“前进为正”的同一符号体系。
      */
     float avg = (s_totalCountA + (-s_totalCountB)) / 2.0f;
-    return avg / PULSE_PER_CIRCLE;
+    return avg / (float)s_pulsesPerCircle;
 }
 
-// 10ms 定时器中断（与官方例程完全一致）
+/* ---- 速度采样 ISR (10ms 周期) ----
+ * 读取编码器正交计数 → 差分速度 → 供 PID_control 速度环使用。
+ * 右轮取反 (encoderB_cnt = -Get_Encoder_countB) 保证前进时为正。 */
 void TIMA0_IRQHandler(void)
 {
-    /* 读取并判断本次中断源（IIDX）。原来的写法 `if(DL_TIMER_IIDX_ZERO)` 是常量判断，
-     * 逻辑上不正确。
-     */
     if (DL_TimerA_getPendingInterrupt(TIMER_0_INST) == DL_TIMER_IIDX_ZERO)
     {
         encoderA_cnt = Get_Encoder_countA;
         encoderB_cnt = -Get_Encoder_countB;
 
-        leftEncSpeed = encoderA_cnt * 2.;
-        rightEncSpeed = encoderB_cnt * 2;
+        leftEncSpeed = encoderA_cnt * 4;   /* 脉冲×4 → 速度 (10ms周期) */
+        rightEncSpeed = encoderB_cnt * 4;
 
         Get_Encoder_countA = 0;
         Get_Encoder_countB = 0;
@@ -146,4 +145,9 @@ void GROUP1_IRQHandler(void)
     }
 
     DL_GPIO_clearInterruptStatus(GPIOA, gpio_interrupt);
+}
+
+void Encoder_SetPulsesPerCircle(uint32_t pulses)
+{
+    s_pulsesPerCircle = pulses;
 }

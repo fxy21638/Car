@@ -393,22 +393,22 @@ SYSCONFIG_WEAK void SYSCFG_DL_TIMER_0_init(void) {
 /*
  * Timer clock configuration to be sourced by BUSCLK /  (40000000 Hz)
  * timerClkFreq = (timerClkSrc / (timerClkDivRatio * (timerClkPrescale + 1)))
- *   1250000 Hz = 40000000 Hz / (1 * (31 + 1))
+ *   40000000 Hz = 40000000 Hz / (1 * (0 + 1))
  */
 static const DL_TimerG_ClockConfig gTIMER_USClockConfig = {
     .clockSel    = DL_TIMER_CLOCK_BUSCLK,
     .divideRatio = DL_TIMER_CLOCK_DIVIDE_1,
-    .prescale    = 31U,
+    .prescale    = 0U,
 };
 
 /*
  * Timer load value (where the counter starts from) is calculated as (timerPeriod * timerClockFreq) - 1
- * TIMER_US_INST_LOAD_VALUE = (40 ms * 1250000 Hz) - 1
+ * TIMER_US_INST_LOAD_VALUE = (50us * 40000000 Hz) - 1
  */
 static const DL_TimerG_TimerConfig gTIMER_USTimerConfig = {
     .period     = TIMER_US_INST_LOAD_VALUE,
-    .timerMode  = DL_TIMER_TIMER_MODE_ONE_SHOT_UP,
-    .startTimer = DL_TIMER_STOP,
+    .timerMode  = DL_TIMER_TIMER_MODE_PERIODIC_UP,
+    .startTimer = DL_TIMER_START,
 };
 
 SYSCONFIG_WEAK void SYSCFG_DL_TIMER_US_init(void) {

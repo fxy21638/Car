@@ -50,7 +50,7 @@ void ObstacleAvoidance_Task(unsigned long nowMs)
     switch (g_avoidStage)
     {
     case AVOID_IDLE:
-        if (dist > 0 && dist < 300)
+        if (dist > 0 && dist < 25)
         {
             g_avoidStage = AVOID_STOP;
             g_avoidStartMs = nowMs;
@@ -94,7 +94,7 @@ void ObstacleAvoidance_Task(unsigned long nowMs)
         {
             g_avoidStage = AVOID_TURN_LINE;
             g_avoidStartMs = nowMs;
-            Set_PWM(30, 37);
+            Set_PWM(30, 45);
         }
         break;
 
@@ -183,7 +183,116 @@ void turn_Task(void)
     }
 }
 
+void turn_Task_Reset(void)
+{
+    g_turnStage = TURN_IDLE;
+}
+
 void SpeedLoop_Task(void)
 {
     PID_control();
+}
+
+/* turn_Task_v2 扩展搜索状态机：
+ * 丢线后以递进角度 (±20°, ±40°, ±60°, ±80°) 交替左右搜索，
+ * 每个角度短暂前进一段后检查是否回线。 */
+typedef enum
+{
+    TURN2_IDLE = 0,
+    TURN2_STOP,
+    TURN2_TURN,
+    TURN2_FORWARD,
+    TURN2_NEXT
+} Turn2Stage;
+
+static Turn2Stage g_turn2Stage = TURN2_IDLE;
+static unsigned long g_turn2StartMs = 0;
+static int g_turn2SearchAngle = 20;
+static int g_turn2Direction = 1;   /* 1=左, -1=右 */
+static int g_turn2SearchCount = 0;
+
+void turn_Task_v2(void)
+{
+    switch (g_turn2Stage)
+    {
+    case TURN2_IDLE:
+        if (is_lost != 0)
+        {
+            g_turn2Stage = TURN2_STOP;
+            g_turn2StartMs = tick_ms;
+            Set_PWM(0, 0);
+            origin_yaw = yaw;
+            g_turn2SearchAngle = 20;
+            g_turn2Direction = 1;
+            g_turn2SearchCount = 0;
+        }
+        else
+        {
+            PID_control();
+        }
+        break;
+
+    case TURN2_STOP:
+        if (tick_ms - g_turn2StartMs > 200)
+        {
+            g_turn2Stage = TURN2_TURN;
+            g_turn2StartMs = tick_ms;
+        }
+        break;
+
+    case TURN2_TURN:
+    {
+        float target = origin_yaw + g_turn2Direction * g_turn2SearchAngle;
+        float diff = angle_diff(target, yaw);
+        if (diff < 5.0f && diff > -5.0f)
+        {
+            g_turn2Stage = TURN2_FORWARD;
+            g_turn2StartMs = tick_ms;
+            Set_PWM(30, 30);
+        }
+        else
+        {
+            TurnToAngle(target);
+        }
+        break;
+    }
+
+    case TURN2_FORWARD:
+        if (is_lost == 0)
+        {
+            g_turn2Stage = TURN2_IDLE;
+        }
+        else if (tick_ms - g_turn2StartMs > 400)
+        {
+            g_turn2Stage = TURN2_NEXT;
+        }
+        else
+        {
+            PID_control_head(30, 30);
+        }
+        break;
+
+    case TURN2_NEXT:
+        g_turn2SearchCount++;
+        g_turn2Direction = -g_turn2Direction;
+        if (g_turn2Direction == 1)
+        {
+            g_turn2SearchAngle += 20;
+            if (g_turn2SearchAngle > 80)
+                g_turn2SearchAngle = 80;
+        }
+        Set_PWM(0, 0);
+        g_turn2StartMs = tick_ms;
+        g_turn2Stage = TURN2_STOP;
+        break;
+    }
+}
+
+void turn_Task_v2_Reset(void)
+{
+    g_turn2Stage = TURN2_IDLE;
+    g_turn2StartMs = 0;
+    g_turn2SearchAngle = 20;
+    g_turn2Direction = 1;
+    g_turn2SearchCount = 0;
 }

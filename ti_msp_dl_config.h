@@ -121,7 +121,7 @@ extern "C" {
 #define TIMER_US_INST                                                    (TIMG0)
 #define TIMER_US_INST_IRQHandler                                TIMG0_IRQHandler
 #define TIMER_US_INST_INT_IRQN                                  (TIMG0_INT_IRQn)
-#define TIMER_US_INST_LOAD_VALUE                                        (49999U)
+#define TIMER_US_INST_LOAD_VALUE                                         (1999U)
 
 
 

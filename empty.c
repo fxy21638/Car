@@ -1,23 +1,4 @@
-/*
- * Copyright (c) 2021, Texas Instruments Incorporated
- * All rights reserved.
- */
-
-#include "ti_msp_dl_config.h"
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include "Delay.h"
-#include "Encoder.h"
-#include "Key.h"
-#include "Motor.h"
-#include "MPU6050_MSPM0.h"
-#include "OLED.h"
-#include "PID.h"
-#include "Sensor.h"
-#include "task.h"
-#include "Uart.h"
-#include "Ultrasonic.h"
+#include "main.h"
 
 /* 全局控制状态 */
 PID_t leftPID;
@@ -72,9 +53,12 @@ int main(void)
 
         // PID_control();
 
-        /* 更新超声波距离数据（如果避障功能开启） */
-        if (g_avoidEnable)
-            dist = Read_Ultrasonic();
+        /* 超声波非阻塞测距 */
+		if(g_avoidEnable)
+		{
+			Ultrasonic_Task(tick_ms);
+			dist = Ultrasonic_GetDistanceCm();
+		}
 
         /* 更新 MPU6050 Yaw（如果转向功能开启） */
         if (g_turnEnable)
@@ -117,7 +101,7 @@ int main(void)
 		
         if (!OLED_IsBusy())
         {
-		    OlED_show();
+            OlED_show();
         }
         OLED_Task();
 
@@ -136,7 +120,7 @@ void OlED_show(void)
     {
         OLED_ShowString(0, 0, "=== MAIN MENU ===", OLED_8X16);
         OLED_ShowString(0, 16, "K2:Set Laps", OLED_8X16);
-        OLED_ShowString(0, 32, "K3:MPU Debug", OLED_8X16);
+        OLED_ShowString(0, 32, "K3:Mode Change", OLED_8X16);
         OLED_ShowString(0, 48, "K4:Start Run", OLED_8X16);
     }
     else if (g_menuState == MENU_SET_LAPS)
@@ -212,7 +196,7 @@ static void Handle_Keys(void)
         }
         else if (k3)
         {
-            g_menuState = MENU_MPU_DEBUG;
+            g_menuState = MENU_AVOID;
         }
         else if (k4)
         {

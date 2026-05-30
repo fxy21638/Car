@@ -91,26 +91,35 @@ void PID_Reset(PID_t *pid)
     pid->output = 0.0f;
 }
 
+/* ---- 标准循线控制 ----
+ * 串联双环 PID：转向环(位置) → 速度环(编码器) → H桥PWM
+ *
+ * 数据流：
+ *   linePos(Sensor) → steerPID → targetSpeed → leftPID/rightPID → PWMleft/right → Motor
+ *                                              ↑ leftEncSpeed/rightEncSpeed (Encoder)
+ *
+ * 丢线时 (is_lost!=0) 跳过PID，原地旋转回找。 */
 void PID_control(void)
 {
-    // 转向环PID
+    /* 转向环：目标=线居中(0)，实际=linePos */
     steerPID.target = 0;
     steerPID.actual = linePos;
     PID_Update(&steerPID);
 
+    /* 转向输出 → 左右轮差速目标 */
     targetLeftSpeed = BASE_SPEED + steerPID.output;
     targetRightSpeed = BASE_SPEED - steerPID.output;
 
-    // 速度环PID
+    /* 速度环：目标=上述差速值，实际=编码器测得轮速 */
     leftPID.target = targetLeftSpeed;
     rightPID.target = targetRightSpeed;
-
     leftPID.actual = leftEncSpeed;
     rightPID.actual = rightEncSpeed;
     PID_Update(&leftPID);
     PID_Update(&rightPID);
 
-    int turn_speed = 30;
+    /* 丢线处理：原地旋转回找，不走PID输出 */
+    int turn_speed = 35;
     if (is_lost == 0)
     {
         PWMleft = leftPID.output;
@@ -130,34 +139,24 @@ void PID_control(void)
         }
     }
 
-    // PWMleft = BASE_SPEED - linePos;
-    // PWMright = BASE_SPEED + linePos;
-
     Set_PWM(PWMleft, PWMright);
 }
 
-void PID_control_head(int left,int right)
+/* 纯速度环：固定目标速度直行，无转向干预。供对角线直线段等场景使用。 */
+void PID_control_head(int left, int right)
 {
-    // ==================== 纯速度环，无转向 ====================
-    // 固定目标速度（你可以在这里改，用来测试加减速、阶跃响应）
-    targetLeftSpeed = left;  // 左轮目标速度
-    targetRightSpeed = right; // 右轮目标速度
+    targetLeftSpeed = left;
+    targetRightSpeed = right;
 
-    // 速度环 PID 计算
     leftPID.target = targetLeftSpeed;
     rightPID.target = targetRightSpeed;
-
-    leftPID.actual = leftEncSpeed; // 编码器实际速度
+    leftPID.actual = leftEncSpeed;
     rightPID.actual = rightEncSpeed;
-
     PID_Update(&leftPID);
     PID_Update(&rightPID);
 
-    // 直接输出PID结果到电机（无任何干扰）
     PWMleft = leftPID.output;
     PWMright = rightPID.output;
-
-    // 输出PWM
     Set_PWM(PWMleft, PWMright);
 }
 
@@ -181,17 +180,19 @@ float Angle_Control(float targetYawDeg, float actualYawDeg)
     return anglePID.output;
 }
 
-/* 转向任务使用的角度环辅助函数。
- * 先把目标角误差（已处理 ±180° 环绕）送入 anglePID，再交给左右轮速度环去执行。 */
+/* ---- 转向到目标偏航角 ----
+ * 角度环 + 速度环串联，原地或低速旋转对准目标航向。
+ * 每帧调用一次，直到 yaw 接近目标（由上层判断到达条件）。 */
 void TurnToAngle(float targetYawDeg)
 {
     float err = targetYawDeg - yaw;
-    while (err > 180.0f)  err -= 360.0f;
+    while (err > 180.0f)  err -= 360.0f;   /* ±180° 归一化 */
     while (err < -180.0f) err += 360.0f;
-    float steer = Angle_Control(0.0f, err);
+
+    float steer = Angle_Control(0.0f, err); /* anglePID: 角度误差→转向量 */
 
     targetLeftSpeed = BASE_SPEED + (int)steer;
-    targetRightSpeed = BASE_SPEED -(int)steer;
+    targetRightSpeed = BASE_SPEED - (int)steer;
 
     leftPID.target = targetLeftSpeed;
     rightPID.target = targetRightSpeed;

@@ -15,5 +15,6 @@ extern int rightEncSpeed;
 void Encoder_Init(void);
 void Encoder_ResetDistance(void);
 float Get_Current_Circles(void);
+void Encoder_SetPulsesPerCircle(uint32_t pulses);
 
 #endif

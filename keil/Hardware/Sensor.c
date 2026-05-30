@@ -1,4 +1,7 @@
 #include "Sensor.h"
+#include "OLED.h"
+
+#define step 10
 
 const int posWeight[8] = {-24, -12, -6, -2, 2, 6, 12, 24};
 
@@ -8,6 +11,7 @@ extern int lastSumPos;
 extern int is_lost;
 extern float yaw;
 
+/* 硬件：白底→返回1, 黑线→返回0 */
 int GPIO_ReadPin(GPIO_Regs *GPIOx, uint32_t pin)
 {
     if ((DL_GPIO_readPins(GPIOx, pin)) == 0)
@@ -19,7 +23,6 @@ int GPIO_ReadPin(GPIO_Regs *GPIOx, uint32_t pin)
         return 0;
     }
 }
-//(1<<pin)>>pin)&1)
 
 void Sensor_Init(void)
 {
@@ -50,6 +53,9 @@ int Sensor_GetState(int i)
     }
 }
 
+/* 赛道：白底黑线，Sensor_GetState 返回 1=白底 0=黑线。
+ * sumPos = 白色区域加权中心，count = 黑线传感器数。
+ * count==0 即全白，判定为丢线，触发原地旋转回找。 */
 int Sensor_GetQuantizedPos(void)
 {
     int sumPos = 0;
@@ -72,19 +78,52 @@ int Sensor_GetQuantizedPos(void)
         else if (lastSumPos < 0)
             is_lost = -1;
         else
-        {
             is_lost = 0;
-        }
 
         if (BASE_SPEED > 0)
-            BASE_SPEED -= 10;
+            BASE_SPEED -= step;
     }
     else
     {
         lastSumPos = sumPos;
         is_lost = 0;
         if (BASE_SPEED < 60)
-            BASE_SPEED += 5;
+            BASE_SPEED += step;
     }
     return sumPos;
+}
+
+/* OLED 传感器调试页：显示 8 路原始值、在线数、加权位置、丢线标志 */
+void Sensor_ShowDebug(void)
+{
+    char buf[9];
+    int i;
+    int onCount = 0;
+
+    OLED_Clear();
+
+    for (i = 0; i < 8; i++)
+    {
+        int v = Sensor_GetState(i);
+        buf[i] = v ? '1' : '0';
+        if (v) onCount++;
+    }
+    buf[8] = '\0';
+
+    OLED_ShowString(0, 0, "S0-3:", OLED_8X16);
+    OLED_ShowString(48, 0, buf, OLED_8X16);
+
+    OLED_ShowString(0, 16, "S4-7:", OLED_8X16);
+    OLED_ShowString(48, 16, buf + 4, OLED_8X16);
+
+    OLED_ShowString(0, 32, "On:", OLED_8X16);
+    OLED_ShowNum(32, 32, onCount, 1, OLED_8X16);
+
+    OLED_ShowString(0, 48, "Pos:", OLED_8X16);
+    OLED_ShowSignedNum(40, 48, linePos, 4, OLED_8X16);
+
+    OLED_ShowString(80, 48, "L:", OLED_8X16);
+    OLED_ShowSignedNum(104, 48, is_lost, 2, OLED_8X16);
+
+    OLED_Update();
 }

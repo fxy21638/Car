@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>__MSPM0G3507__</Define>
               <Undefine></Undefine>
-              <IncludePath>..\..\..\..\..\..\source\third_party\CMSIS\Core\Include;..\..\..\..\..\..\source;.\Hardware;..\..\car_01</IncludePath>
+              <IncludePath>..\..\..\..\..\..\source\third_party\CMSIS\Core\Include;..\..\..\..\..\..\source;.\Hardware;..\..\car_02</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -388,6 +388,11 @@
               <FileName>empty.c</FileName>
               <FileType>1</FileType>
               <FilePath>../empty.c</FilePath>
+            </File>
+            <File>
+              <FileName>main.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\main.h</FilePath>
             </File>
             <File>
               <FileName>empty.syscfg</FileName>

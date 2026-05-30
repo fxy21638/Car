@@ -10,6 +10,9 @@ extern "C"
 
     void ObstacleAvoidance_Task(unsigned long nowMs);
     void turn_Task(void);
+    void turn_Task_Reset(void);
+    void turn_Task_v2(void);
+    void turn_Task_v2_Reset(void);
 
 #ifdef __cplusplus
 }
