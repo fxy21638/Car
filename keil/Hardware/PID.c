@@ -93,7 +93,7 @@ void PID_Reset(PID_t *pid)
 
 void PID_control(void)
 {
-    //        // ???PID????
+    // 转向环PID
     steerPID.target = 0;
     steerPID.actual = linePos;
     PID_Update(&steerPID);
@@ -101,7 +101,7 @@ void PID_control(void)
     targetLeftSpeed = BASE_SPEED + steerPID.output;
     targetRightSpeed = BASE_SPEED - steerPID.output;
 
-    //        // ?????PID
+    // 速度环PID
     leftPID.target = targetLeftSpeed;
     rightPID.target = targetRightSpeed;
 

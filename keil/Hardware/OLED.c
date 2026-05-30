@@ -10,6 +10,9 @@
 // #define Hard_OLED_SPI   // 使用硬件SPI
 
 uint8_t OLED_DisplayBuf[8][128];
+static uint8_t OLED_DirtyPagesMask = 0x00;
+static uint8_t OLED_DirtyXStart = 0;
+static uint8_t OLED_DirtyXEnd = 127;
 
 /*
  * 软件I2C时序延迟：
@@ -23,6 +26,55 @@ uint8_t OLED_DisplayBuf[8][128];
 static inline void OLED_I2C_Delay(void)
 {
 	delay_cycles(OLED_I2C_DELAY_CYCLES);
+}
+
+static void OLED_MarkDirtyArea(uint8_t X, uint8_t Y, uint8_t Width, uint8_t Height)
+{
+	uint8_t startPage;
+	uint8_t endPage;
+	uint8_t page;
+
+	if ((Width == 0) || (Height == 0))
+	{
+		return;
+	}
+	if (X > 127 || Y > 63)
+	{
+		return;
+	}
+	if (X + Width > 128)
+	{
+		Width = 128 - X;
+	}
+	if (Y + Height > 64)
+	{
+		Height = 64 - Y;
+	}
+
+	startPage = Y / 8;
+	endPage = (Y + Height - 1) / 8;
+
+	if (OLED_DirtyPagesMask == 0)
+	{
+		OLED_DirtyXStart = X;
+		OLED_DirtyXEnd = X + Width - 1;
+	}
+	else
+	{
+		if (X < OLED_DirtyXStart)
+		{
+			OLED_DirtyXStart = X;
+		}
+		if ((X + Width - 1) > OLED_DirtyXEnd)
+		{
+			OLED_DirtyXEnd = X + Width - 1;
+		}
+	}
+
+	for (page = startPage; page <= endPage; page++)
+	{
+		OLED_DirtyPagesMask |= (uint8_t)(1U << page);
+	}
 }
 
 /********************* 全局变量 */
@@ -499,7 +551,7 @@ uint8_t OLED_IsInAngle(int16_t X, int16_t Y, int16_t StartAngle, int16_t EndAngl
  *           才会将显存数组的数据发送到OLED硬件并触发显示
  *           故每次显示操作之后想同步到屏幕上，需要调用更新函数
  */
-void OLED_Update(void)
+void OLED_UpdateBlockingLegacy(void)
 {
 	uint8_t j;
 	/* 遍历每一页 */
@@ -526,7 +578,7 @@ void OLED_Update(void)
  *           才会将显存数组的数据发送到OLED硬件并触发显示
  *           故每次显示操作之后想同步到屏幕上，需要调用更新函数
  */
-void OLED_UpdateArea(uint8_t X, uint8_t Y, uint8_t Width, uint8_t Height)
+void OLED_UpdateAreaBlockingLegacy(uint8_t X, uint8_t Y, uint8_t Width, uint8_t Height)
 {
 	uint8_t j;
 
@@ -556,6 +608,89 @@ void OLED_UpdateArea(uint8_t X, uint8_t Y, uint8_t Width, uint8_t Height)
 		OLED_SetCursor(j, X);
 		/* 顺序写入Width个数据，将显存数组内容写入到OLED硬件 */
 		OLED_WriteData(&OLED_DisplayBuf[j][X], Width);
+	}
+}
+
+/**
+ * 函   数：将OLED显存数组更新到OLED屏幕（非阻塞）
+ * 参   数：无
+ * 返 回 值：无
+ * 说   明：标记整个屏幕为脏，后续由OLED_Task异步刷新
+ */
+void OLED_Update(void)
+{
+	OLED_MarkDirtyArea(0, 0, 128, 64);
+}
+
+/**
+ * 函   数：将OLED显存数组部分更新到OLED屏幕（非阻塞）
+ * 参   数：X 指定区域的左上角的横坐标，范围：0~127
+ * 参   数：Y 指定区域的左上角的纵坐标，范围：0~63
+ * 参   数：Width 指定区域的宽度，范围：0~128
+ * 参   数：Height 指定区域的高度，范围：0~64
+ * 返 回 值：无
+ * 说   明：标记指定区域为脏，后续由OLED_Task异步刷新
+ */
+void OLED_UpdateArea(uint8_t X, uint8_t Y, uint8_t Width, uint8_t Height)
+{
+	OLED_MarkDirtyArea(X, Y, Width, Height);
+}
+
+/**
+ * 函   数：OLED异步刷新任务
+ * 参   数：无
+ * 返 回 值：无
+ * 说   明：每次调用刷新一个脏页，需在主循环中周期性调用
+ */
+void OLED_Task(void)
+{
+	uint8_t page;
+	uint8_t width;
+
+	if (OLED_DirtyPagesMask == 0)
+	{
+		return;
+	}
+
+	for (page = 0; page < 8; page++)
+	{
+		if ((OLED_DirtyPagesMask & (uint8_t)(1U << page)) != 0)
+		{
+			width = OLED_DirtyXEnd - OLED_DirtyXStart + 1;
+			OLED_SetCursor(page, OLED_DirtyXStart);
+			OLED_WriteData(&OLED_DisplayBuf[page][OLED_DirtyXStart], width);
+			OLED_DirtyPagesMask &= (uint8_t)~(1U << page);
+			if (OLED_DirtyPagesMask == 0)
+			{
+				OLED_DirtyXStart = 0;
+				OLED_DirtyXEnd = 127;
+			}
+			return;
+		}
+	}
+}
+
+/**
+ * 函   数：检查OLED是否正在刷新
+ * 参   数：无
+ * 返 回 值：1表示有待刷新数据，0表示空闲
+ */
+uint8_t OLED_IsBusy(void)
+{
+	return (OLED_DirtyPagesMask != 0) ? 1U : 0U;
+}
+
+/**
+ * 函   数：阻塞等待OLED刷新完成
+ * 参   数：无
+ * 返 回 值：无
+ * 说   明：循环调用OLED_Task直到所有脏页刷新完毕
+ */
+static void OLED_FlushBlocking(void)
+{
+	while (OLED_IsBusy())
+	{
+		OLED_Task();
 	}
 }
 

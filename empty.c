@@ -60,32 +60,10 @@ void OlED_show(void);
 void System_Init(void);
 static void Handle_Keys(void);
 
-/* PID 参数实验入口。
- * 保留多组参数模板，当前只启用一组，便于现场快速切换调参。 */
-void Test_PID_Parameters(void)
-{
-    /*
-    // P only
-    PID_Init(&leftPID, 2.0f, 0.0f, 0.0f, 80, -80, 60, 0.2f);
-    PID_Init(&rightPID, 2.0f, 0.0f, 0.0f, 80, -80, 60, 0.2f);
-    */
-
-    /*
-    // PI
-    PID_Init(&leftPID, 1.5f, 0.02f, 0.0f, 80, -80, 60, 0.2f);
-    PID_Init(&rightPID, 1.5f, 0.02f, 0.0f, 80, -80, 60, 0.2f);
-    */
-
-    /* 当前启用的参数组 */
-    PID_Init(&leftPID, 2.8f, 0.16f, 0.0f, 100, -100, 350, 0.2f);
-    PID_Init(&rightPID, 2.8f, 0.16f, 0.0f, 100, -100, 350, 0.2f);
-}
-
 int main(void)
 {
     SYSCFG_DL_init();
     System_Init();
-    Test_PID_Parameters();
 
     while (1)
     {

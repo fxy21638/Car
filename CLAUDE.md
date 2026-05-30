@@ -90,6 +90,22 @@ main() 超级循环:
 - 注释语言: 中文
 - 缩进: 4空格
 
+## 重要：修改代码时保护中文注释
+
+**所有 `.c` / `.h` 文件均为 UTF-8 编码，包含大量中文注释。修改代码时必须遵守以下规则，避免注释损坏：**
+
+1. **禁止使用不支持 UTF-8 的编辑器**。确保编辑器以 UTF-8 编码打开和保存文件。
+2. **Keil uVision 用户特别注意**：Keil 默认编码为 ANSI/GBK，打开文件时可能不会自动识别 UTF-8。保存前务必确认编码为 UTF-8。
+3. **编辑后验证**：修改任何文件后，在 git diff 中确认中文注释没有变成 `?????` 或 `锟斤拷` 等乱码。
+4. **禁止使用 GBK/ANSI 编码保存**：即使只是添加一行代码，也可能导致整行中文注释损坏。始终以 UTF-8 保存。
+5. **如果发现注释已损坏**（出现大量 `?` 字符）：立即用 `git show HEAD:文件路径 > 文件路径` 恢复到最新提交的干净版本，然后重新应用代码修改。
+
+常见的编辑器设置：
+- **VS Code**: 右下角状态栏确认编码为 "UTF-8"，不是 "GBK" 或 "GB2312"
+- **Keil uVision**: Edit → Configuration → Editor → Encoding → UTF-8
+- **Notepad++**: 编码菜单 → 转为 UTF-8 编码
+- **CCS/Theia**: Window → Preferences → General → Workspace → Text file encoding → UTF-8
+
 ## 注意事项
 
 1. **SysConfig 是引脚配置的唯一来源**。修改 `empty.syscfg` 后重新生成 `ti_msp_dl_config.c/.h`。

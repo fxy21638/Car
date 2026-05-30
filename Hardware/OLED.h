@@ -25,6 +25,8 @@ void OLED_Init(void);
 /* 更新函数 */
 void OLED_Update(void);
 void OLED_UpdateArea(uint8_t X, uint8_t Y, uint8_t Width, uint8_t Height);
+void OLED_Task(void);
+uint8_t OLED_IsBusy(void);
 
 /* 显存操作函数 */
 void OLED_Clear(void);
