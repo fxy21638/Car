@@ -114,7 +114,7 @@ main() 超级循环:
 - **避障后必须在到达拐角前回到边线**继续循迹
 - 圈数 1-5 可通过菜单设定，单圈 ≤ 25 秒
 - **实现**: `ObstacleAvoidance_Task_v2()` — 编码器测距 + MPU6050 转角，不依赖延时（旧版 v1 保留在 `task.c`）
-- 圈距: 16000（比任务1略大，避障绕行路径更长）
+- 圈距: 14300（比任务1略大，避障绕行路径更长）
 
 ### 任务3/4 — 定点直线+对角线行驶（传感器触发版）
 
@@ -155,9 +155,9 @@ main() 超级循环:
 | 任务 | 默认每圈脉冲数 | 圈数来源 | 停车判断 |
 | ---- | -------------- | -------- | -------- |
 | 任务1 纯循线 | 13000 (正方形480cm，编码器×4) | 用户设定 `g_targetCircles` | `Get_Current_Circles() >= g_targetCircles` |
-| 任务2 循线+避障 | 16000 (绕行路径更长) | 用户设定 `g_targetCircles` | `Get_Current_Circles() >= g_targetCircles` |
-| 任务3 对角线单程 | 15700 | 固定 1 | `Get_Current_Circles() >= g_targetCircles` |
-| 任务4 对角线4圈 | 15700 | 固定 4 | `Get_Current_Circles() >= g_targetCircles` |
+| 任务2 循线+避障 | 14300 (绕行路径更长) | 用户设定 `g_targetCircles` | `Get_Current_Circles() >= g_targetCircles` |
+| 任务3 对角线单程 | 16300 | 固定 1 | `Get_Current_Circles() >= g_targetCircles` |
+| 任务4 对角线4圈 | 16300 | 固定 4 | `Get_Current_Circles() >= g_targetCircles` |
 
 > **所有任务统一用编码器圈数停车**。转角 v2 状态机用脉冲快照计距不破坏累计值，`Get_Current_Circles()` 正常增长。
 
@@ -166,8 +166,8 @@ main() 超级循环:
 ```c
 菜单切换任务时:
   任务1 → Encoder_SetPulsesPerCircle(13000)
-  任务2 → Encoder_SetPulsesPerCircle(16000)
-  任务3/4 → Encoder_SetPulsesPerCircle(15700)
+  任务2 → Encoder_SetPulsesPerCircle(14300)
+  任务3/4 → Encoder_SetPulsesPerCircle(16300)
 
 启动运行时 (K4):
   Encoder_ResetDistance()               // 清零累计脉冲
@@ -289,7 +289,7 @@ IDLE(循线) → ADVANCE(前移对齐) → TURN1(转135°) → STRAIGHT(直行�
 | `CORNER_TURN_DEG` | 135 | 转角角度 (度) |
 | `CORNER_STRAIGHT_PULSES` | 4600 | 直行最大距离 (编码器脉冲，约94cm) |
 | `CORNER_STRAIGHT_SPEED` | 60 | 直行速度 (0~100) |
-| `CORNER_ADVANCE_PULSES` | 400 | 检角后前移距离，对齐旋转中心 |
+| `CORNER_ADVANCE_PULSES` | 350 | 检角后前移距离，对齐旋转中心 |
 | `CORNER_RETURN_ADVANCE_PULSES` | 400 | 见线后前移距离，对齐后再转回 |
 | `CORNER_CONVERGE_THRESH` | 3.0f | 转向到位阈值 (度) |
 | `CORNER_DETECT_DEBOUNCE` | 3 | 直角检测消抖帧数 |
