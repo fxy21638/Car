@@ -39,7 +39,7 @@ void PID_Update(PID_t *pid);
 void PID_Reset(PID_t *pid); // 重置PID状态
 
 void PID_control(void);
-void PID_control_head(int left,int right);
+void PID_control_head(int speed, float targetYawDeg);
 void PID_SetSpeedTunings(float kp, float ki, float kd);
 // Angle control: set target and actual yaw (degrees), returns control output
 float Angle_Control(float targetYawDeg, float actualYawDeg);

@@ -172,7 +172,7 @@ void turn_Task(void)
         {
             g_turnStage = TURN_IDLE;
         }
-        PID_control_head(30, 30);
+        PID_control_head(30, yaw);
         break;
     }
 }
@@ -262,7 +262,7 @@ void turn_Task_v2(void)
         }
         else
         {
-            PID_control_head(30, 30);
+            PID_control_head(30, yaw);
         }
         break;
 

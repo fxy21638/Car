@@ -142,21 +142,28 @@ void PID_control(void)
     Set_PWM(PWMleft, PWMright);
 }
 
-/* 纯速度环：固定目标速度直行，无转向干预。供对角线直线段等场景使用。 */
-void PID_control_head(int left, int right)
+/* 速度环 + 角度修正：以 targetYawDeg 为目标航向，用 anglePID 修正左右轮差速，
+ * 在直行过程中主动抵抗跑偏，降低对两轮机械对称性的要求。 */
+void PID_control_head(int speed, float targetYawDeg)
 {
-    targetLeftSpeed = left;
-    targetRightSpeed = right;
+    float err = targetYawDeg - yaw;
+    while (err > 180.0f)  err -= 360.0f;
+    while (err < -180.0f) err += 360.0f;
 
-    leftPID.target = targetLeftSpeed;
+    float steer = Angle_Control(0.0f, err);
+
+    targetLeftSpeed  = speed + (int)steer;
+    targetRightSpeed = speed - (int)steer;
+
+    leftPID.target  = targetLeftSpeed;
     rightPID.target = targetRightSpeed;
-    leftPID.actual = leftEncSpeed;
+    leftPID.actual  = leftEncSpeed;
     rightPID.actual = rightEncSpeed;
     PID_Update(&leftPID);
     PID_Update(&rightPID);
 
-    PWMleft = leftPID.output;
-    PWMright = rightPID.output;
+    PWMleft  = (int)leftPID.output;
+    PWMright = (int)rightPID.output;
     Set_PWM(PWMleft, PWMright);
 }
 

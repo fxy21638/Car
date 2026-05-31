@@ -190,7 +190,7 @@ main() 超级循环:
 | 函数 | 用途 |
 | ---- | ---- |
 | `PID_control()` | 标准循线: steerPID(转向) + leftPID/rightPID(速度闭环) |
-| `PID_control_head(l,r)` | 纯速度环: 左右轮独立速度控制，无转向干预（避障直行/寻线阶段使用） |
+| `PID_control_head(speed, targetYawDeg)` | 速度环+角度修正: 以目标航向驱动anglePID修正左右差速，直行中主动抗跑偏 |
 | `TurnToAngle(targetDeg)` | 角度环: 用 anglePID 控制小车转到目标偏航角（非阻塞，需每帧调用） |
 | `Angle_Control(target, actual)` | 角度PID单步计算，返回 steer 值 |
 
@@ -241,27 +241,42 @@ main() 超级循环:
 | `AVOID_DIST_PULSES` | 1350 | 绕障直行距离 (编码器脉冲) |
 | `AVOID_SPEED` | 60 | 避障期间直行速度 (0~100) |
 | `AVOID_OBSTACLE_CM` | 25 | 超声波障碍检测阈值 (厘米) |
-| `AVOID_CONVERGE_THRESH` | 5.0f | 转向到位判定阈值 (度) |
+| `AVOID_CONVERGE_THRESH` | 3.0f | 转向到位判定阈值 (度) |
 | `AVOID_SEEK_MAX_PULSES` | 2500 | 寻线阶段最大距离，超时放弃 |
 
 ## 转向 v2 状态机 (keil/Hardware/task_v2.c)
 
 替代空的 `diagonal_Task()`，用传感器检测直角 + 编码器计距 + MPU6050 转角实现正方形赛道对角导航。2次拐角操作 = 1圈。
 
-### 4 阶段
+### 6 阶段
+
+```
+IDLE(循线) → ADVANCE(前移对齐) → TURN1(转135°) → STRAIGHT(直行过对角) →
+  ADVANCE2(见线后前移对齐) → TURN2(转回origin_yaw) → IDLE(计数+1)
+```
 
 | 阶段 | 行为 | 触发下一阶段条件 |
 |------|------|-----------------|
-| `CORNER2_IDLE` | `PID_control()` 循线 | 一侧4灯全黑 + 消抖 |
-| `CORNER2_TURN1` | `TurnToAngle(orig ± 135°)` 朝直角方向转 | `|err| < 5°` |
-| `CORNER2_STRAIGHT` | `PID_control_head(60,60)` 直行 | 中双传感器见线 或 编码器>2500脉冲 |
-| `CORNER2_TURN2` | `TurnToAngle(orig ∓ 135°)` 反向转回 | `|err| < 5°` → `g_cornerSetsCompleted++` → IDLE |
+| `CORNER2_IDLE` | `PID_control()` 循线 | 一侧4灯全黑 + 3帧消抖，记录 `origin_yaw` |
+| `CORNER2_ADVANCE` | `PID_control_head(60, origin_yaw)` 前移对齐旋转中心 | 编码器增量 > 400 脉冲 |
+| `CORNER2_TURN1` | `TurnToAngle(origin_yaw ± 135°)` 朝对角方向转 | 误差 < 3° |
+| `CORNER2_STRAIGHT` | `PID_control_head(60, origin_yaw ± 135°)` 角度修正直行 | 中双传感器(S3且S4)见线 或 编码器>4600脉冲 |
+| `CORNER2_ADVANCE2` | `PID_control_head(60, origin_yaw ± 135°)` 见线后前移对齐 | 编码器增量 > 400 脉冲 |
+| `CORNER2_TURN2` | `TurnToAngle(origin_yaw)` 转回原始航向 | 误差 < 3°, g_cornerSetsCompleted++, 回IDLE |
 
-### 直角检测
+> **TURN2 直接回到 `origin_yaw`**（不是 `origin_yaw ∓ 135°`）。因为正方形对边平行，到达对边后只需回到原始航向即可沿下一段循线。
 
-- S0~S3 全部黑线 → 左直角 → 左转 -135°
-- S4~S7 全部黑线 → 右直角 → 右转 +135°
-- 连续 3 帧消抖
+### 直角检测与转角方向
+
+- S0~S3 全部黑线 → 左直角 → 左转 +135° (`turnDir = +1`)
+- S4~S7 全部黑线 → 右直角 → 右转 -135° (`turnDir = -1`)
+- 连续 3 帧消抖防误触
+
+> 注意：MPU6050 yaw 正向为逆时针(左转)。`origin_yaw + 135` 是左转135°，`origin_yaw - 135` 是右转135°。
+
+### 角度PID积分复位
+
+`PID_control_head` 直行期间会持续调用 `Angle_Control`，`anglePID` 积分项逐渐累积。进入 `TurnToAngle` 前必须 `PID_Reset(&anglePID)` 清零积分，否则旧积分会抵抗新目标方向的转动。当前在 ADVANCE→TURN1、STRAIGHT→ADVANCE2、ADVANCE2→TURN2 三处转换均已加入复位。
 
 ### 停车逻辑
 
@@ -272,9 +287,11 @@ main() 超级循环:
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
 | `CORNER_TURN_DEG` | 135 | 转角角度 (度) |
-| `CORNER_STRAIGHT_PULSES` | 2500 | 直行最大距离 (编码器脉冲，约94cm) |
+| `CORNER_STRAIGHT_PULSES` | 4600 | 直行最大距离 (编码器脉冲，约94cm) |
 | `CORNER_STRAIGHT_SPEED` | 60 | 直行速度 (0~100) |
-| `CORNER_CONVERGE_THRESH` | 5.0f | 转向到位阈值 (度) |
+| `CORNER_ADVANCE_PULSES` | 400 | 检角后前移距离，对齐旋转中心 |
+| `CORNER_RETURN_ADVANCE_PULSES` | 400 | 见线后前移距离，对齐后再转回 |
+| `CORNER_CONVERGE_THRESH` | 3.0f | 转向到位阈值 (度) |
 | `CORNER_DETECT_DEBOUNCE` | 3 | 直角检测消抖帧数 |
 
 ## 引脚分配

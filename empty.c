@@ -197,11 +197,11 @@ static void TaskSwitchConfig(TaskType task)
         g_targetCircles = g_lastUserLaps;
         break;
     case TASK_DIAG_1:
-        Encoder_SetPulsesPerCircle(15700);
+        Encoder_SetPulsesPerCircle(17200);
         g_targetCircles = 1;
         break;
     case TASK_DIAG_4:
-        Encoder_SetPulsesPerCircle(15700);
+        Encoder_SetPulsesPerCircle(17200);
         g_targetCircles = 4;
         break;
     }
@@ -339,7 +339,7 @@ void System_Init(void)
     PID_Init(&leftPID, 2.5f, 0.16f, 0.0f, 100, -100, 35, 0.2f);
     PID_Init(&rightPID, 2.8f, 0.16f, 0.0f, 100, -100, 35, 0.2f);
     PID_Init(&steerPID, 0.8f, 0.02f, 0.2f, 80, -80, 30, 0.7f);
-    PID_Init(&anglePID, 0.8f, 0.3f, 0.5f, 40, -40, 30, 0.7f);
+    PID_Init(&anglePID, 1.2f, 0.05f, 0.5f, 40, -40, 30, 0.7f);
 
     /* 默认任务配置，确保Encoder圈距同步 */
     TaskSwitchConfig(TASK_TRACE);
