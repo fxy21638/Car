@@ -145,9 +145,10 @@ void ObstacleAvoidance_Task_v2_Reset(void)
 /* ---- 转向 v2 参数 ---- */
 #define CORNER_TURN_DEG 135         /* 转角角度 (度) */
 #define CORNER_STRAIGHT_PULSES 4600 /* 直行最大距离 (编码器脉冲，约94cm) */
-#define CORNER_STRAIGHT_SPEED 60    /* 直行速度 (0~100) */
-#define CORNER_ADVANCE_PULSES 350   /* 检角后前移距离 (编码器脉冲，约19cm) */
+#define CORNER_STRAIGHT_SPEED 80    /* 直行速度 (0~100) */
+#define CORNER_ADVANCE_PULSES 300   /* 检角后前移距离 (编码器脉冲，约19cm) */
 #define CORNER_RETURN_ADVANCE_PULSES 400 /* 见线后前移距离，对齐旋转中心再转回 */
+#define CORNER_STARTUP_PULSES 400        /* 地图外启动，直行入场距离(不计入圈数) */
 #define CORNER_CONVERGE_THRESH 3.0f /* 转向到位阈值 (度) */
 #define CORNER_DETECT_DEBOUNCE 3    /* 直角检测消抖帧数 */
 
@@ -163,7 +164,8 @@ typedef enum
     CORNER2_TURN1,
     CORNER2_STRAIGHT,
     CORNER2_ADVANCE2, /* 见线后前移，对齐旋转中心 */
-    CORNER2_TURN2
+    CORNER2_TURN2,
+    CORNER2_STARTUP /* 地图外A点外侧启动，直行入场 */
 } CornerStageV2;
 
 static CornerStageV2 g_corner2Stage = CORNER2_IDLE;
@@ -184,6 +186,20 @@ void CornerTurn_Task_v2(void)
 
     switch (g_corner2Stage)
     {
+    case CORNER2_STARTUP:
+        /* 地图外A点外侧启动，直行400脉冲进入地图，此段不计入圈数 */
+        if (Encoder_GetDistancePulses() - g_cornerSegStartPulses
+            > CORNER_STARTUP_PULSES)
+        {
+            Encoder_ResetDistance();
+            g_corner2Stage = CORNER2_IDLE;
+        }
+        else
+        {
+            PID_control_head(CORNER_STRAIGHT_SPEED, origin_yaw);
+        }
+        break;
+
     case CORNER2_IDLE:
         if (left_black || right_black)
         {
@@ -293,7 +309,9 @@ void CornerTurn_Task_v2(void)
 
 void CornerTurn_Task_v2_Reset(void)
 {
-    g_corner2Stage = CORNER2_IDLE;
+    g_corner2Stage = CORNER2_STARTUP;
     g_cornerDetectDebounce = 0;
     g_cornerSetsCompleted = 0;
+    origin_yaw = yaw;
+    g_cornerSegStartPulses = Encoder_GetDistancePulses();
 }
