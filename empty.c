@@ -49,7 +49,7 @@ typedef enum
 
 static MenuState g_menuState = MENU_MAIN;
 static TaskType g_taskType = TASK_TRACE;
-static uint8_t g_running = 0;
+uint8_t g_running = 0;
 static uint8_t g_targetCircles = 1;
 static uint8_t g_lastUserLaps = 1;   /* 任务1/2 的用户设定圈数，切换任务时恢复 */
 
@@ -89,16 +89,13 @@ int main(void)
             else if (g_taskType == TASK_AVOID)
                 ObstacleAvoidance_Task_v2();
             else  /* TASK_DIAG_1 / TASK_DIAG_4 */
-                diagonal_Task();
+                CornerTurn_Task_v2();
 
-            /* 停车判断：仅任务1/2 用编码器圈数 */
-            if (g_taskType <= TASK_AVOID)
+            /* 停车判断：所有任务统一用编码器圈数 */
+            if (Get_Current_Circles() >= g_targetCircles)
             {
-                if (Get_Current_Circles() >= g_targetCircles)
-                {
-                    g_running = 0;
-                    Set_PWM(0, 0);
-                }
+                g_running = 0;
+                Set_PWM(0, 0);
             }
         }
         else
@@ -200,9 +197,11 @@ static void TaskSwitchConfig(TaskType task)
         g_targetCircles = g_lastUserLaps;
         break;
     case TASK_DIAG_1:
+        Encoder_SetPulsesPerCircle(15700);
         g_targetCircles = 1;
         break;
     case TASK_DIAG_4:
+        Encoder_SetPulsesPerCircle(15700);
         g_targetCircles = 4;
         break;
     }
@@ -242,7 +241,7 @@ static void Handle_Keys(void)
             if (g_taskType == TASK_AVOID)
                 ObstacleAvoidance_Task_v2_Reset();
             else if (g_taskType >= TASK_DIAG_1)
-                diagonal_Task_Reset();
+                CornerTurn_Task_v2_Reset();
             g_menuState = MENU_RUNNING;
             g_running = 1;
         }

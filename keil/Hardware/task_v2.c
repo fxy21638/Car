@@ -1,4 +1,5 @@
 #include "task_v2.h"
+#include "Sensor.h"
 
 /* ---- 避障参数 (实车标定后调整) ----
  *  轨迹: 右转45° → 直行绕过 → 左转90° → 直行寻线
@@ -134,4 +135,124 @@ void ObstacleAvoidance_Task_v2(void)
 void ObstacleAvoidance_Task_v2_Reset(void)
 {
     g_avoid2Stage = AVOID2_IDLE;
+}
+
+/* ---- 转向 v2 参数 ---- */
+#define CORNER_TURN_DEG         135     /* 转角角度 (度) */
+#define CORNER_STRAIGHT_PULSES  4600    /* 直行最大距离 (编码器脉冲，约94cm) */
+#define CORNER_STRAIGHT_SPEED   60      /* 直行速度 (0~100) */
+#define CORNER_CONVERGE_THRESH  5.0f    /* 转向到位阈值 (度) */
+#define CORNER_DETECT_DEBOUNCE  3       /* 直角检测消抖帧数 */
+
+/* ---- 转向 v2 状态机：传感器检角 + 编码器+MPU6050 对角导航 ----
+ * 轨迹: 检测直角 → 原地转135°(朝直角方向) → 直行 → 转回135°(反向)
+ * 正方形赛道: 2组 = 1圈 (从A回到A)
+ */
+typedef enum
+{
+    CORNER2_IDLE = 0,
+    CORNER2_TURN1,
+    CORNER2_STRAIGHT,
+    CORNER2_TURN2
+} CornerStageV2;
+
+static CornerStageV2 g_corner2Stage = CORNER2_IDLE;
+static int32_t g_cornerSegStartPulses = 0;
+static int g_cornerTurnDir = 0;         /* 1=右转, -1=左转 */
+static int g_cornerDetectDebounce = 0;
+uint8_t g_cornerSetsCompleted = 0;      /* 已完成拐角组数 */
+
+extern uint8_t g_running;
+
+void CornerTurn_Task_v2(void)
+{
+    /* 直角检测: 一侧4灯全黑 */
+    int left_black  = (Sensor_GetState(0)==0 && Sensor_GetState(1)==0 &&
+                       Sensor_GetState(2)==0 && Sensor_GetState(3)==0);
+    int right_black = (Sensor_GetState(4)==0 && Sensor_GetState(5)==0 &&
+                       Sensor_GetState(6)==0 && Sensor_GetState(7)==0);
+
+    switch (g_corner2Stage)
+    {
+    case CORNER2_IDLE:
+        if (left_black || right_black)
+        {
+            g_cornerDetectDebounce++;
+            if (g_cornerDetectDebounce >= CORNER_DETECT_DEBOUNCE)
+            {
+                g_cornerDetectDebounce = 0;
+                /* 左全黑→左直角→左转; 右全黑→右直角→右转 */
+                if (left_black)
+                    g_cornerTurnDir = -1;  /* 左转 -135° */
+                else
+                    g_cornerTurnDir = 1;   /* 右转 +135° */
+
+                Set_PWM(0, 0);
+                origin_yaw = yaw;
+                g_corner2Stage = CORNER2_TURN1;
+            }
+        }
+        else
+        {
+            g_cornerDetectDebounce = 0;
+            PID_control();
+        }
+        break;
+
+    case CORNER2_TURN1:
+    {
+        float target = origin_yaw + g_cornerTurnDir * CORNER_TURN_DEG;
+        float diff = angle_diff(target, yaw);
+        if (diff < CORNER_CONVERGE_THRESH && diff > -CORNER_CONVERGE_THRESH)
+        {
+            g_cornerSegStartPulses = Encoder_GetDistancePulses();
+            g_corner2Stage = CORNER2_STRAIGHT;
+        }
+        else
+        {
+            TurnToAngle(target);
+        }
+        break;
+    }
+
+    case CORNER2_STRAIGHT:
+    {
+        int mid_black   = (Sensor_GetState(3)==0 && Sensor_GetState(4)==0);
+        int dist_reached = (Encoder_GetDistancePulses() - g_cornerSegStartPulses
+                            > CORNER_STRAIGHT_PULSES);
+        if (mid_black || dist_reached)
+        {
+            g_corner2Stage = CORNER2_TURN2;
+        }
+        else
+        {
+            PID_control_head(CORNER_STRAIGHT_SPEED, CORNER_STRAIGHT_SPEED);
+        }
+        break;
+    }
+
+    case CORNER2_TURN2:
+    {
+        /* 反向转回: 减去上次加的转角 */
+        float target = origin_yaw - g_cornerTurnDir * CORNER_TURN_DEG;
+        float diff = angle_diff(target, yaw);
+        if (diff < CORNER_CONVERGE_THRESH && diff > -CORNER_CONVERGE_THRESH)
+        {
+            g_cornerSetsCompleted++;
+            g_corner2Stage = CORNER2_IDLE;
+        }
+        else
+        {
+            TurnToAngle(target);
+        }
+        break;
+    }
+    }
+}
+
+void CornerTurn_Task_v2_Reset(void)
+{
+    g_corner2Stage = CORNER2_IDLE;
+    g_cornerDetectDebounce = 0;
+    g_cornerSetsCompleted = 0;
 }

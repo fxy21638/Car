@@ -16,6 +16,9 @@ extern "C"
     void ObstacleAvoidance_Task_v2(void);
     void ObstacleAvoidance_Task_v2_Reset(void);
 
+    void CornerTurn_Task_v2(void);
+    void CornerTurn_Task_v2_Reset(void);
+
 #ifdef __cplusplus
 }
 #endif
