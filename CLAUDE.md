@@ -291,9 +291,9 @@ STARTUP(地图外直行入场) → IDLE(循线) → ADVANCE(前移对齐) → TU
 |------|--------|------|
 | `CORNER_TURN_DEG` | 135 | 转角角度 (度) |
 | `CORNER_STRAIGHT_PULSES` | 4600 | 直行最大距离 (编码器脉冲，约94cm) |
-| `CORNER_STRAIGHT_SPEED` | 60 | 直行速度 (0~100) |
+| `CORNER_STRAIGHT_SPEED` | 80 | 直行速度 (0~100) |
 | `CORNER_STARTUP_PULSES` | 400 | 地图外启动直行入场距离(不计入圈数) |
-| `CORNER_ADVANCE_PULSES` | 350 | 检角后前移距离，对齐旋转中心 |
+| `CORNER_ADVANCE_PULSES` | 300 | 检角后前移距离，对齐旋转中心 |
 | `CORNER_RETURN_ADVANCE_PULSES` | 400 | 见线后前移距离，对齐后再转回 |
 | `CORNER_CONVERGE_THRESH` | 3.0f | 转向到位阈值 (度) |
 | `CORNER_DETECT_DEBOUNCE` | 3 | 直角检测消抖帧数 |
