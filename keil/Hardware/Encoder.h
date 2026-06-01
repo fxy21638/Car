@@ -12,6 +12,7 @@ extern volatile int32_t encoderB_cnt;
 
 extern int leftEncSpeed;
 extern int rightEncSpeed;
+extern volatile uint8_t g_mpu6050_flag;
 
 void Encoder_Init(void);
 void Encoder_ResetDistance(void);

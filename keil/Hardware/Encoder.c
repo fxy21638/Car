@@ -5,6 +5,7 @@ volatile int32_t Get_Encoder_countA = 0; // 左轮实时计数
 volatile int32_t Get_Encoder_countB = 0; // 右轮实时计数
 volatile int32_t encoderA_cnt = 0;       // 10ms 速度值
 volatile int32_t encoderB_cnt = 0;
+volatile uint8_t g_mpu6050_flag = 0;    /* TIMA0 ISR 置1，主循环检测并清零 */
 
 /* 累计脉冲（不清零），用于 Get_Current_Circles() 圈数计算。
  * Get_Encoder_countA/B 每 10ms 被 TIMA0 ISR 清零，不能用于累计距离。 */
@@ -69,6 +70,8 @@ void TIMA0_IRQHandler(void)
 
         Get_Encoder_countA = 0;
         Get_Encoder_countB = 0;
+
+        g_mpu6050_flag = 1; /* 通知主循环更新MPU6050 */
     }
 
     DL_TimerA_clearInterruptStatus(TIMER_0_INST, DL_TIMER_INTERRUPT_ZERO_EVENT);

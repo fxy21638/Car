@@ -56,9 +56,10 @@ car_02/
 ```
 main() 超级循环:
   1. Sensor_GetQuantizedPos() → 通过8路红外计算加权线位置
-  2. 超声波/MPU6050 传感器更新（仅在对应任务使能时）
-  3. Key_GetPressed() 处理菜单输入
-  4. 根据 g_menuState 和 g_running 选择控制模式:
+  2. 超声波非阻塞测距（始终运行）
+  3. g_mpu6050_flag 检查 → MPU6050_UpdateYaw() (TIMA0 10ms定时触发)
+  4. Key_GetPressed() 处理菜单输入
+  5. 根据 g_menuState 和 g_running 选择控制模式:
      - PID_control()              任务1: 纯循线
      - ObstacleAvoidance_Task_v2()  任务2: 循线+避障 (v2: 编码器+MPU6050)
      - CornerTurn_Task_v2()       任务3/4: 传感器检角+对角导航
@@ -66,9 +67,12 @@ main() 超级循环:
 
 中断:
   SysTick_Handler          (1ms)   → tick_ms++
-  TIMA0_IRQHandler         (10ms)  → 编码器速度采样
+  TIMA0_IRQHandler         (10ms)  → 编码器速度采样 + 置 g_mpu6050_flag=1
   GROUP1_IRQHandler        (GPIOA) → 编码器正交解码
   TIMER_US_INST_IRQHandler (50us)  → 超声波回波测量
+
+> TIMA0 ISR 同时设置 `g_mpu6050_flag`，主循环检测到此标志时调用 `MPU6050_UpdateYaw()`。
+> 这样 MPU6050 采样由硬件定时器 10ms 固定间隔驱动，不受主循环速度波动影响。
 ```
 
 ## 电赛校赛 — 赛题分析

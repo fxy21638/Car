@@ -72,9 +72,13 @@ int main(void)
         Ultrasonic_Task(tick_ms);
         dist = Ultrasonic_GetDistanceCm();
 
-        /* 更新 MPU6050 Yaw（始终运行，供对角线任务用） */
-        MPU6050_UpdateYaw(&gImu, tick_ms);
-        yaw = MPU6050_GetYawDeg(&gImu);
+        /* 更新 MPU6050 Yaw（TIMA0 10ms定时触发，始终运行） */
+        if (g_mpu6050_flag)
+        {
+            MPU6050_UpdateYaw(&gImu, tick_ms);
+            yaw = MPU6050_GetYawDeg(&gImu);
+            g_mpu6050_flag = 0;
+        }
 
         if (!g_running)
         {
@@ -338,7 +342,7 @@ void System_Init(void)
     }
 
     /* 控制器默认参数 */
-    PID_Init(&leftPID, 2.5f, 0.16f, 0.0f, 100, -100, 35, 0.2f);
+    PID_Init(&leftPID, 2.8f, 0.16f, 0.0f, 100, -100, 35, 0.2f);
     PID_Init(&rightPID, 2.5f, 0.16f, 0.0f, 100, -100, 35, 0.2f);
     PID_Init(&steerPID, 0.8f, 0.02f, 0.2f, 80, -80, 30, 0.7f);
     PID_Init(&anglePID, 1.3f, 0.15f, 0.5f, 40, -40, 30, 0.7f);
