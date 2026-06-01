@@ -92,7 +92,7 @@ int Sensor_GetQuantizedPos(void)
         s_lostDebounce = 0;
         lastSumPos = sumPos;
         is_lost = 0;
-        if (BASE_SPEED < 80)
+        if (BASE_SPEED < 60)
             BASE_SPEED += step;
     }
     return sumPos;

@@ -6,7 +6,7 @@ PID_t rightPID;
 PID_t steerPID;
 PID_t anglePID;
 
-int BASE_SPEED = 80;
+int BASE_SPEED = 60;
 int linePos = 0;
 int lastSumPos = 0;
 int is_lost = 0;
@@ -108,6 +108,8 @@ int main(void)
             OlED_show();
         }
         OLED_Task();
+		
+		//Test_MPU6050_TurnToAngle();
 
         //VOFA_SendSpeedLoop();
 
@@ -189,7 +191,7 @@ static void TaskSwitchConfig(TaskType task)
     switch (task)
     {
     case TASK_TRACE:
-        Encoder_SetPulsesPerCircle(13000);
+        Encoder_SetPulsesPerCircle(13200);
         g_targetCircles = g_lastUserLaps;
         break;
     case TASK_AVOID:
@@ -337,7 +339,7 @@ void System_Init(void)
 
     /* 控制器默认参数 */
     PID_Init(&leftPID, 2.5f, 0.16f, 0.0f, 100, -100, 35, 0.2f);
-    PID_Init(&rightPID, 2.8f, 0.16f, 0.0f, 100, -100, 35, 0.2f);
+    PID_Init(&rightPID, 2.5f, 0.16f, 0.0f, 100, -100, 35, 0.2f);
     PID_Init(&steerPID, 0.8f, 0.02f, 0.2f, 80, -80, 30, 0.7f);
     PID_Init(&anglePID, 1.3f, 0.15f, 0.5f, 40, -40, 30, 0.7f);
 

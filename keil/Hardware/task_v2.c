@@ -144,9 +144,9 @@ void ObstacleAvoidance_Task_v2_Reset(void)
 
 /* ---- 转向 v2 参数 ---- */
 #define CORNER_TURN_DEG 135         /* 转角角度 (度) */
-#define CORNER_STRAIGHT_PULSES 4600 /* 直行最大距离 (编码器脉冲，约94cm) */
+#define CORNER_STRAIGHT_PULSES 6000 /* 直行最大距离 (编码器脉冲，约94cm) */
 #define CORNER_STRAIGHT_SPEED 80    /* 直行速度 (0~100) */
-#define CORNER_ADVANCE_PULSES 300   /* 检角后前移距离 (编码器脉冲，约19cm) */
+#define CORNER_ADVANCE_PULSES 200   /* 检角后前移距离 (编码器脉冲，约19cm) */
 #define CORNER_RETURN_ADVANCE_PULSES 400 /* 见线后前移距离，对齐旋转中心再转回 */
 #define CORNER_STARTUP_PULSES 400        /* 地图外启动，直行入场距离(不计入圈数) */
 #define CORNER_CONVERGE_THRESH 3.0f /* 转向到位阈值 (度) */

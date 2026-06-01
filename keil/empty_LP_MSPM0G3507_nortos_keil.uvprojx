@@ -70,7 +70,7 @@
             <nStopU2X>0</nStopU2X>
           </BeforeCompile>
           <BeforeMake>
-            <RunUserProg1>0</RunUserProg1>
+            <RunUserProg1>1</RunUserProg1>
             <RunUserProg2>0</RunUserProg2>
             <UserProg1Name>cmd.exe /C "D:\ti\mspm0_sdk_2_01_00_03\tools\keil\syscfg.bat '$P' ..\empty.syscfg"</UserProg1Name>
             <UserProg2Name></UserProg2Name>
