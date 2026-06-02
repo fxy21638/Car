@@ -198,6 +198,19 @@ main() 超级循环:
 | `TurnToAngle(targetDeg)` | 角度环: 用 anglePID 控制小车转到目标偏航角（非阻塞，需每帧调用） |
 | `Angle_Control(target, actual)` | 角度PID单步计算，返回 steer 值 |
 
+### 速度策略
+
+`BASE_SPEED` 为循线时的基础速度，`g_baseSpeedTarget` 为丢线恢复时的目标速度。`TaskSwitchConfig()` 切换任务时自动设置：
+
+| 任务 | BASE_SPEED | g_baseSpeedTarget |
+|------|-----------|-------------------|
+| TASK_TRACE | 80 | 80 |
+| TASK_AVOID | 60 | 60 |
+| TASK_DIAG_1 | 80 | 80 |
+| TASK_DIAG_4 | 80 | 80 |
+
+丢线后 `BASE_SPEED` 逐帧 -10 降低速度，找回线后逐帧 +10 恢复至 `g_baseSpeedTarget`。
+
 ## 圈距配置
 
 圈数通过编码器脉冲累计值计算: `圈数 = 累计脉冲 / 每圈脉冲数`。
@@ -293,12 +306,12 @@ STARTUP(地图外直行入场) → IDLE(循线) → ADVANCE(前移对齐) → TU
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
-| `CORNER_TURN_DEG` | 135 | 转角角度 (度) |
-| `CORNER_STRAIGHT_PULSES` | 4600 | 直行最大距离 (编码器脉冲，约94cm) |
+| `CORNER_TURN_DEG` | 137 | 转角角度 (度) |
+| `CORNER_STRAIGHT_PULSES` | 6000 | 直行最大距离 (编码器脉冲，约94cm) |
 | `CORNER_STRAIGHT_SPEED` | 80 | 直行速度 (0~100) |
 | `CORNER_STARTUP_PULSES` | 400 | 地图外启动直行入场距离(不计入圈数) |
-| `CORNER_ADVANCE_PULSES` | 300 | 检角后前移距离，对齐旋转中心 |
-| `CORNER_RETURN_ADVANCE_PULSES` | 400 | 见线后前移距离，对齐后再转回 |
+| `CORNER_ADVANCE_PULSES` | 200 | 检角后前移距离，对齐旋转中心 |
+| `CORNER_RETURN_ADVANCE_PULSES` | 300 | 见线后前移距离，对齐后再转回 |
 | `CORNER_CONVERGE_THRESH` | 3.0f | 转向到位阈值 (度) |
 | `CORNER_DETECT_DEBOUNCE` | 3 | 直角检测消抖帧数 |
 

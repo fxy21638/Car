@@ -6,7 +6,8 @@ PID_t rightPID;
 PID_t steerPID;
 PID_t anglePID;
 
-int BASE_SPEED = 60;
+int BASE_SPEED = 80;
+int g_baseSpeedTarget = 80;
 int linePos = 0;
 int lastSumPos = 0;
 int is_lost = 0;
@@ -199,18 +200,26 @@ static void TaskSwitchConfig(TaskType task)
     case TASK_TRACE:
         Encoder_SetPulsesPerCircle(13200);
         g_targetCircles = g_lastUserLaps;
+        BASE_SPEED = 80;
+        g_baseSpeedTarget = 80;
         break;
     case TASK_AVOID:
         Encoder_SetPulsesPerCircle(14300);
         g_targetCircles = g_lastUserLaps;
+        BASE_SPEED = 80;
+        g_baseSpeedTarget = 80;
         break;
     case TASK_DIAG_1:
         Encoder_SetPulsesPerCircle(16300);
         g_targetCircles = 1;
+        BASE_SPEED = 80;
+        g_baseSpeedTarget = 80;
         break;
     case TASK_DIAG_4:
         Encoder_SetPulsesPerCircle(16300);
         g_targetCircles = 4;
+        BASE_SPEED = 80;
+        g_baseSpeedTarget = 80;
         break;
     }
 }
@@ -347,7 +356,7 @@ void System_Init(void)
     /* 控制器默认参数 */
     PID_Init(&leftPID, 3.8f, 0.30f, 0.05f, 100, -100, 80, 0.35f);
     PID_Init(&rightPID, 3.3f, 0.30f, 0.05f, 100, -100, 80, 0.35f);
-    PID_Init(&steerPID, 0.8f, 0.02f, 0.2f, 80, -80, 30, 0.7f);
+    PID_Init(&steerPID, 0.9f, 0.03f, 0.2f, 80, -80, 40, 0.7f);
     PID_Init(&anglePID, 1.3f, 0.15f, 0.5f, 40, -40, 30, 0.7f);
 
     /* 默认任务配置，确保Encoder圈距同步 */

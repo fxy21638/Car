@@ -5,6 +5,7 @@
 const int posWeight[8] = {-24, -12, -6, -2, 2, 6, 12, 24};
 
 extern int BASE_SPEED;
+extern int g_baseSpeedTarget;
 extern int linePos;
 extern int lastSumPos;
 extern int is_lost;
@@ -92,7 +93,7 @@ int Sensor_GetQuantizedPos(void)
         s_lostDebounce = 0;
         lastSumPos = sumPos;
         is_lost = 0;
-        if (BASE_SPEED < 60)
+        if (BASE_SPEED < g_baseSpeedTarget)
             BASE_SPEED += step;
     }
     return sumPos;
