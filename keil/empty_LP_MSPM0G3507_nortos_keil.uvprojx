@@ -10,7 +10,7 @@
       <TargetName>empty_LP_MSPM0G3507_nortos_keil</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
-      <pCCUsed>6210000::V6.21::ARMCLANG</pCCUsed>
+      <pCCUsed>6220000::V6.22::ARMCLANG</pCCUsed>
       <uAC6>1</uAC6>
       <TargetOption>
         <TargetCommonOption>
@@ -72,7 +72,7 @@
           <BeforeMake>
             <RunUserProg1>1</RunUserProg1>
             <RunUserProg2>0</RunUserProg2>
-            <UserProg1Name>cmd.exe /C "D:\ti\mspm0_sdk_2_01_00_03\tools\keil\syscfg.bat '$P' ..\empty.syscfg"</UserProg1Name>
+            <UserProg1Name>cmd.exe /C "C:\ti\mspm0_sdk_2_05_01_00\tools\keil\syscfg.bat '$P' ..\empty.syscfg"</UserProg1Name>
             <UserProg2Name></UserProg2Name>
             <UserProg1Dos16Mode>0</UserProg1Dos16Mode>
             <UserProg2Dos16Mode>0</UserProg2Dos16Mode>
@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>__MSPM0G3507__</Define>
               <Undefine></Undefine>
-              <IncludePath>..\..\..\..\..\..\source\third_party\CMSIS\Core\Include;..\..\..\..\..\..\source;.\Hardware;..\..\car_02</IncludePath>
+              <IncludePath>..;C:\ti\mspm0_sdk_2_05_01_00\source\third_party\CMSIS\Core\Include;C:\ti\mspm0_sdk_2_05_01_00\source;.\Hardware;..\..\car_02</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -374,7 +374,7 @@
             <ScatterFile>./mspm0g3507.sct</ScatterFile>
             <IncludeLibs></IncludeLibs>
             <IncludeLibsPath></IncludeLibsPath>
-            <Misc>D:\ti\mspm0_sdk_2_01_00_03\source\ti\driverlib\lib\keil\m0p\mspm0g1x0x_g3x0x\driverlib.a</Misc>
+            <Misc>C:\ti\mspm0_sdk_2_05_01_00\source\ti\driverlib\lib\keil\m0p\mspm0g1x0x_g3x0x\driverlib.a</Misc>
             <LinkerInputFile></LinkerInputFile>
             <DisabledWarnings></DisabledWarnings>
           </LDads>

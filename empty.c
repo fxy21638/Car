@@ -95,6 +95,8 @@ int main(void)
             else  /* TASK_DIAG_1 / TASK_DIAG_4 */
                 CornerTurn_Task_v2();
 
+            VOFA_SendSpeedLoop();
+
             /* 停车判断：所有任务统一用编码器圈数 */
             if (Get_Current_Circles() >= g_targetCircles)
             {
@@ -115,7 +117,7 @@ int main(void)
 		
 		//Test_MPU6050_TurnToAngle();
 
-        //VOFA_SendSpeedLoop();
+        Uart_PollTx();
 
         //Delay_ms(10);
     }
@@ -324,6 +326,7 @@ void System_Init(void)
     Key_Init();
     Ultrasonic_Init();
     __enable_irq();
+    Uart_TX_Init();
     OLED_Init();
 
     /* IMU 初始化与零偏标定 */
@@ -342,8 +345,8 @@ void System_Init(void)
     }
 
     /* 控制器默认参数 */
-    PID_Init(&leftPID, 2.8f, 0.16f, 0.0f, 100, -100, 35, 0.2f);
-    PID_Init(&rightPID, 2.5f, 0.16f, 0.0f, 100, -100, 35, 0.2f);
+    PID_Init(&leftPID, 3.8f, 0.30f, 0.05f, 100, -100, 80, 0.35f);
+    PID_Init(&rightPID, 3.3f, 0.30f, 0.05f, 100, -100, 80, 0.35f);
     PID_Init(&steerPID, 0.8f, 0.02f, 0.2f, 80, -80, 30, 0.7f);
     PID_Init(&anglePID, 1.3f, 0.15f, 0.5f, 40, -40, 30, 0.7f);
 
