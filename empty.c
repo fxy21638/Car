@@ -96,7 +96,7 @@ int main(void)
             else  /* TASK_DIAG_1 / TASK_DIAG_4 */
                 CornerTurn_Task_v2();
 
-            VOFA_SendSpeedLoop();
+            //VOFA_SendSpeedLoop();
 
             /* 停车判断：所有任务统一用编码器圈数 */
             if (Get_Current_Circles() >= g_targetCircles)
@@ -210,13 +210,13 @@ static void TaskSwitchConfig(TaskType task)
         g_baseSpeedTarget = 80;
         break;
     case TASK_DIAG_1:
-        Encoder_SetPulsesPerCircle(20000);
+        Encoder_SetPulsesPerCircle(21500);
         g_targetCircles = 1;
         BASE_SPEED = 80;
         g_baseSpeedTarget = 80;
         break;
     case TASK_DIAG_4:
-        Encoder_SetPulsesPerCircle(20000);
+        Encoder_SetPulsesPerCircle(21500);
         g_targetCircles = 4;
         BASE_SPEED = 80;
         g_baseSpeedTarget = 80;
