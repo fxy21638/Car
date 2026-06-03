@@ -263,36 +263,33 @@ main() 超级循环:
 
 ## 转向 v2 状态机 (keil/Hardware/task_v2.c)
 
-替代空的 `diagonal_Task()`，用传感器检测直角 + 编码器计距 + MPU6050 转角实现正方形赛道对角导航。2次拐角操作 = 1圈。
+替代空的 `diagonal_Task()`，用传感器检测直角 + 编码器计距 + MPU6050 转角实现正方形赛道对角导航。2次拐角操作 = 1圈，地图内启动。
 
-### 7 阶段
+### 6 阶段
 
 ```
-STARTUP(地图外直行入场) → IDLE(循线) → ADVANCE(前移对齐) → TURN1(转135°) →
+IDLE(循线) → ADVANCE(前移对齐) → TURN1(转137°/朝对角方向) →
   STRAIGHT(直行过对角) → ADVANCE2(见线后前移) → TURN2(转回origin_yaw) → IDLE(计数+1)
 ```
 
-> **STARTUP 阶段不计入圈数**。任务3/4要求在地图外A点外侧启动，K4按下后先直行400脉冲进入地图，然后 `Encoder_ResetDistance()` 清零编码器，再进入IDLE开始循迹。STARTUP 阶段的编码器增量不会影响圈数计算。
-
 | 阶段 | 行为 | 触发下一阶段条件 |
 |------|------|-----------------|
-| `CORNER2_STARTUP` | `PID_control_head(60, origin_yaw)` 地图外直行入场 | 编码器增量 > 400 脉冲 → `Encoder_ResetDistance()` |
 | `CORNER2_IDLE` | `PID_control()` 循线 | 一侧4灯全黑 + 3帧消抖，记录 `origin_yaw` |
-| `CORNER2_ADVANCE` | `PID_control_head(60, origin_yaw)` 前移对齐旋转中心 | 编码器增量 > 350 脉冲 |
-| `CORNER2_TURN1` | `TurnToAngle(origin_yaw ± 135°)` 朝对角方向转 | 误差 < 3° |
-| `CORNER2_STRAIGHT` | `PID_control_head(60, origin_yaw ± 135°)` 角度修正直行 | 中双传感器(S3且S4)见线 或 编码器>4600脉冲 |
-| `CORNER2_ADVANCE2` | `PID_control_head(60, origin_yaw ± 135°)` 见线后前移对齐 | 编码器增量 > 400 脉冲 |
+| `CORNER2_ADVANCE` | `PID_control_head(CORNER_STRAIGHT_SPEED, origin_yaw)` 前移对齐旋转中心 | 编码器增量 > 200 脉冲 |
+| `CORNER2_TURN1` | `TurnToAngle(origin_yaw ± 137°)` 朝对角方向转 | 误差 < 3° |
+| `CORNER2_STRAIGHT` | `PID_control_head(80, origin_yaw ± 137°)` 角度修正直行 | 中双传感器(S3且S4)见线 或 编码器>6200脉冲 |
+| `CORNER2_ADVANCE2` | `PID_control_head(80, origin_yaw ± 137°)` 见线后前移对齐 | 编码器增量 > 300 脉冲 |
 | `CORNER2_TURN2` | `TurnToAngle(origin_yaw)` 转回原始航向 | 误差 < 3°, g_cornerSetsCompleted++, 回IDLE |
 
-> **TURN2 直接回到 `origin_yaw`**（不是 `origin_yaw ∓ 135°`）。因为正方形对边平行，到达对边后只需回到原始航向即可沿下一段循线。
+> **TURN2 直接回到 `origin_yaw`**（不是 `origin_yaw ∓ 137°`）。因为正方形对边平行，到达对边后只需回到原始航向即可沿下一段循线。
 
 ### 直角检测与转角方向
 
-- S0~S3 全部黑线 → 左直角 → 左转 +135° (`turnDir = +1`)
-- S4~S7 全部黑线 → 右直角 → 右转 -135° (`turnDir = -1`)
+- S0~S3 全部黑线 → 左直角 → 左转 +137° (`turnDir = +1`)
+- S4~S7 全部黑线 → 右直角 → 右转 -137° (`turnDir = -1`)
 - 连续 3 帧消抖防误触
 
-> 注意：MPU6050 yaw 正向为逆时针(左转)。`origin_yaw + 135` 是左转135°，`origin_yaw - 135` 是右转135°。
+> 注意：MPU6050 yaw 正向为逆时针(左转)。`origin_yaw + 137` 是左转137°，`origin_yaw - 137` 是右转137°。
 
 ### 角度PID积分复位
 
@@ -300,16 +297,15 @@ STARTUP(地图外直行入场) → IDLE(循线) → ADVANCE(前移对齐) → TU
 
 ### 停车逻辑
 
-所有任务统一用编码器圈数: `Get_Current_Circles() >= g_targetCircles`。圈距 15700/圈，转角 v2 用脉冲快照不破坏累计值。
+所有任务统一用编码器圈数: `Get_Current_Circles() >= g_targetCircles`。圈距 20000/圈，转角 v2 用脉冲快照不破坏累计值。
 
 ### 可调参数
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
 | `CORNER_TURN_DEG` | 137 | 转角角度 (度) |
-| `CORNER_STRAIGHT_PULSES` | 6000 | 直行最大距离 (编码器脉冲，约94cm) |
+| `CORNER_STRAIGHT_PULSES` | 6200 | 直行最大距离 (编码器脉冲) |
 | `CORNER_STRAIGHT_SPEED` | 80 | 直行速度 (0~100) |
-| `CORNER_STARTUP_PULSES` | 400 | 地图外启动直行入场距离(不计入圈数) |
 | `CORNER_ADVANCE_PULSES` | 200 | 检角后前移距离，对齐旋转中心 |
 | `CORNER_RETURN_ADVANCE_PULSES` | 300 | 见线后前移距离，对齐后再转回 |
 | `CORNER_CONVERGE_THRESH` | 3.0f | 转向到位阈值 (度) |

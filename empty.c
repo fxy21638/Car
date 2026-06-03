@@ -198,25 +198,25 @@ static void TaskSwitchConfig(TaskType task)
     switch (task)
     {
     case TASK_TRACE:
-        Encoder_SetPulsesPerCircle(13200);
+        Encoder_SetPulsesPerCircle(17500);
         g_targetCircles = g_lastUserLaps;
         BASE_SPEED = 80;
         g_baseSpeedTarget = 80;
         break;
     case TASK_AVOID:
-        Encoder_SetPulsesPerCircle(14300);
+        Encoder_SetPulsesPerCircle(18800);
         g_targetCircles = g_lastUserLaps;
         BASE_SPEED = 80;
         g_baseSpeedTarget = 80;
         break;
     case TASK_DIAG_1:
-        Encoder_SetPulsesPerCircle(16300);
+        Encoder_SetPulsesPerCircle(20000);
         g_targetCircles = 1;
         BASE_SPEED = 80;
         g_baseSpeedTarget = 80;
         break;
     case TASK_DIAG_4:
-        Encoder_SetPulsesPerCircle(16300);
+        Encoder_SetPulsesPerCircle(20000);
         g_targetCircles = 4;
         BASE_SPEED = 80;
         g_baseSpeedTarget = 80;
