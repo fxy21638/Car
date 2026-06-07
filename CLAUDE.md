@@ -245,6 +245,7 @@ main() 超级循环:
 
 ### 关键设计
 
+- **无停车切换**：阶段切换时不再 `Set_PWM(0,0)` 停车，直接进入下一阶段。TurnToAngle 原地转向时 PID_control_head 直行的动量会自然过渡，整体轨迹更流畅，速度更快。
 - **不调用 `Encoder_ResetDistance()`**：各阶段用 `g_segmentStartPulses` 快照编码器值，比较增量 `Encoder_GetDistancePulses() - g_segmentStartPulses > 阈值`。累计圈数不受影响。
 - **`TurnToAngle()` 非阻塞**：每帧调用一次，状态机自行检查收敛（`angle_diff()` 归一化到 ±180°）。
 - **寻线超时保护**：SEEK_LINE 阶段最多走 2500 脉冲后强制回 IDLE，防止无限寻线。
@@ -291,9 +292,11 @@ IDLE(循线) → ADVANCE(前移对齐) → TURN1(转137°/朝对角方向) →
 
 > 注意：MPU6050 yaw 正向为逆时针(左转)。`origin_yaw + 137` 是左转137°，`origin_yaw - 137` 是右转137°。
 
-### 角度PID积分复位
+### 角度PID积分复位与无停车切换
 
-`PID_control_head` 直行期间会持续调用 `Angle_Control`，`anglePID` 积分项逐渐累积。进入 `TurnToAngle` 前必须 `PID_Reset(&anglePID)` 清零积分，否则旧积分会抵抗新目标方向的转动。当前在 ADVANCE→TURN1、STRAIGHT→ADVANCE2、ADVANCE2→TURN2 三处转换均已加入复位。
+`PID_control_head` 直行期间会持续调用 `Angle_Control`，`anglePID` 积分项逐渐累积。进入 `TurnToAngle` 前必须 `PID_Reset(&anglePID)` 清零积分，否则旧积分会抵抗新目标方向的转动。当前在 ADVANCE→TURN1、ADVANCE2→TURN2 两处转换均已加入复位。
+
+阶段切换时不再 `Set_PWM(0,0)` 停车，直接过渡到下一阶段，确保轨迹流畅不中断，避免停车再启动造成的时间损失和姿态扰动。
 
 ### 停车逻辑
 
