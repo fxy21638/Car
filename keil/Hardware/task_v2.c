@@ -49,8 +49,8 @@ static float angle_diff(float a, float b)
 /*
  * 避障状态机 v2 (右避障) — 编码器测距 + MPU6050 转角，不依赖延时
  *
- * 轨迹: 障碍物在线上，右侧绕行，车右转 45° 斜出 → 直行绕过 →
- *       左转 90°  → 直行寻线归位。
+ * 轨迹: 障碍物在线上右侧，车右转 45° 斜出 → 直行绕过 →
+ *       左转 90° 回到与线平行的方向 → 直行寻线归位。
  * 每阶段用编码器脉冲差值计距，TurnToAngle 非阻塞转角度。
  */
 void ObstacleAvoidance_Task_v2(void)
@@ -69,7 +69,7 @@ void ObstacleAvoidance_Task_v2(void)
         break;
 
     case AVOID2_STOP:
-        //Set_PWM(0, 0);
+        Set_PWM(0, 0);
         origin_yaw = yaw;
         g_segmentStartPulses = Encoder_GetDistancePulses();
         g_avoid2Stage = AVOID2_TURN_RIGHT;
@@ -94,7 +94,7 @@ void ObstacleAvoidance_Task_v2(void)
     case AVOID2_FORWARD:
         if (Encoder_GetDistancePulses() - g_segmentStartPulses > AVOID_DIST_PULSES)
         {
-            //Set_PWM(0, 0);
+            Set_PWM(0, 0);
             PID_Reset(&anglePID);
             g_avoid2Stage = AVOID2_TURN_LEFT;
         }
@@ -213,7 +213,7 @@ void CornerTurn_Task_v2(void)
         /* 传感器靠前，前移让车中心对准拐角再转 */
         if (Encoder_GetDistancePulses() - g_cornerSegStartPulses > CORNER_ADVANCE_PULSES)
         {
-            //Set_PWM(0, 0);
+            Set_PWM(0, 0);
             PID_Reset(&anglePID);
             g_corner2Stage = CORNER2_TURN1;
         }
@@ -245,7 +245,7 @@ void CornerTurn_Task_v2(void)
         int dist_reached = (Encoder_GetDistancePulses() - g_cornerSegStartPulses > CORNER_STRAIGHT_PULSES);
         if (mid_black || dist_reached)
         {
-            //Set_PWM(0, 0);
+            Set_PWM(0, 0);
             g_cornerSegStartPulses = Encoder_GetDistancePulses();
             g_corner2Stage = CORNER2_ADVANCE2;
         }
@@ -261,7 +261,7 @@ void CornerTurn_Task_v2(void)
         if (Encoder_GetDistancePulses() - g_cornerSegStartPulses
             > CORNER_RETURN_ADVANCE_PULSES)
         {
-            //Set_PWM(0, 0);
+            Set_PWM(0, 0);
             PID_Reset(&anglePID);
             g_corner2Stage = CORNER2_TURN2;
         }
