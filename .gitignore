@@ -49,3 +49,6 @@ logs.txt
 # IAR
 *.eww
 *.ewd
+
+# Generated diagrams
+diagrams/

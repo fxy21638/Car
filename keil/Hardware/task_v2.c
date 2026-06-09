@@ -69,7 +69,7 @@ void ObstacleAvoidance_Task_v2(void)
         break;
 
     case AVOID2_STOP:
-        Set_PWM(0, 0);
+        Set_PWM(0, 0);           /* 停车快照，一帧后立即进入右转，避免惯性冲过 */
         origin_yaw = yaw;
         g_segmentStartPulses = Encoder_GetDistancePulses();
         g_avoid2Stage = AVOID2_TURN_RIGHT;
@@ -95,7 +95,7 @@ void ObstacleAvoidance_Task_v2(void)
         if (Encoder_GetDistancePulses() - g_segmentStartPulses > AVOID_DIST_PULSES)
         {
             Set_PWM(0, 0);
-            PID_Reset(&anglePID);
+            PID_Reset(&anglePID); /* 清空直行积累的角度积分，避免阻碍后续转向 */
             g_avoid2Stage = AVOID2_TURN_LEFT;
         }
         else
@@ -144,7 +144,7 @@ void ObstacleAvoidance_Task_v2_Reset(void)
 
 /* ---- 转向 v2 参数 ---- */
 #define CORNER_TURN_DEG 137         /* 转角角度 (度) */
-#define CORNER_STRAIGHT_PULSES 6200 /* 直行最大距离 (编码器脉冲，约94cm) */
+#define CORNER_STRAIGHT_PULSES 6100 /* 直行最大距离 (编码器脉冲，约94cm) */
 #define CORNER_STRAIGHT_SPEED 80    /* 直行速度 (0~100) */
 #define CORNER_ADVANCE_PULSES 200   /* 检角后前移距离 (编码器脉冲，约19cm) */
 #define CORNER_RETURN_ADVANCE_PULSES 300 /* 见线后前移距离，对齐旋转中心再转回 */
@@ -191,11 +191,11 @@ void CornerTurn_Task_v2(void)
             if (g_cornerDetectDebounce >= CORNER_DETECT_DEBOUNCE)
             {
                 g_cornerDetectDebounce = 0;
-                /* 左全黑→左直角→左转+135; 右全黑→右直角→右转-135 */
+                /* 左全黑→左直角→左转+137; 右全黑→右直角→右转-137 */
                 if (left_black)
-                    g_cornerTurnDir = 1; /* +135° */
+                    g_cornerTurnDir = 1; /* +137° (MPU6050: CCW为正) */
                 else
-                    g_cornerTurnDir = -1; /* -135° */
+                    g_cornerTurnDir = -1; /* -137° */
 
                 origin_yaw = yaw;
                 g_cornerSegStartPulses = Encoder_GetDistancePulses();
@@ -210,11 +210,10 @@ void CornerTurn_Task_v2(void)
         break;
 
     case CORNER2_ADVANCE:
-        /* 传感器靠前，前移让车中心对准拐角再转 */
+        /* 传感器物理位置在旋转中心前方，需前移让旋转中心对准拐角顶点再原地转 */
         if (Encoder_GetDistancePulses() - g_cornerSegStartPulses > CORNER_ADVANCE_PULSES)
         {
-            Set_PWM(0, 0);
-            PID_Reset(&anglePID);
+            PID_Reset(&anglePID); /* 清空直行角度积分，为原地大角度转向准备干净的控制器 */
             g_corner2Stage = CORNER2_TURN1;
         }
         else
@@ -241,11 +240,11 @@ void CornerTurn_Task_v2(void)
 
     case CORNER2_STRAIGHT:
     {
+        /* S3和S4是中间两个传感器，同时见线说明车已到达对边线段上 */
         int mid_black = (Sensor_GetState(3) == 0 && Sensor_GetState(4) == 0);
         int dist_reached = (Encoder_GetDistancePulses() - g_cornerSegStartPulses > CORNER_STRAIGHT_PULSES);
-        if (mid_black || dist_reached)
+        if (mid_black || dist_reached) /* 见线即停 或 编码器超距保护 */
         {
-            Set_PWM(0, 0);
             g_cornerSegStartPulses = Encoder_GetDistancePulses();
             g_corner2Stage = CORNER2_ADVANCE2;
         }
@@ -257,12 +256,11 @@ void CornerTurn_Task_v2(void)
     }
 
     case CORNER2_ADVANCE2:
-        /* 传感器靠前，见线后前移让车中心对准线段再转回 */
+        /* 传感器见线时旋转中心尚未到达线段，前移对齐后再转回原始航向 */
         if (Encoder_GetDistancePulses() - g_cornerSegStartPulses
             > CORNER_RETURN_ADVANCE_PULSES)
         {
-            Set_PWM(0, 0);
-            PID_Reset(&anglePID);
+            PID_Reset(&anglePID); /* 清空直行积分，为转回 origin_yaw 准备 */
             g_corner2Stage = CORNER2_TURN2;
         }
         else
@@ -274,7 +272,7 @@ void CornerTurn_Task_v2(void)
 
     case CORNER2_TURN2:
     {
-        /* 转回原始航向：对角线两端线段平行，回到 origin_yaw 即可沿下一段循线 */
+        /* 转回原始航向：正方形对边互相平行，回到 origin_yaw 即可沿下一段继续循线 */
         float target = origin_yaw;
         float diff = angle_diff(target, yaw);
         if (diff < CORNER_CONVERGE_THRESH && diff > -CORNER_CONVERGE_THRESH)

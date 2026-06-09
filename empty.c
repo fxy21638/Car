@@ -210,13 +210,13 @@ static void TaskSwitchConfig(TaskType task)
         g_baseSpeedTarget = 80;
         break;
     case TASK_DIAG_1:
-        Encoder_SetPulsesPerCircle(21500);
+        Encoder_SetPulsesPerCircle(21400);
         g_targetCircles = 1;
         BASE_SPEED = 80;
         g_baseSpeedTarget = 80;
         break;
     case TASK_DIAG_4:
-        Encoder_SetPulsesPerCircle(21500);
+        Encoder_SetPulsesPerCircle(21400);
         g_targetCircles = 4;
         BASE_SPEED = 80;
         g_baseSpeedTarget = 80;
@@ -354,9 +354,9 @@ void System_Init(void)
     }
 
     /* 控制器默认参数 */
-    PID_Init(&leftPID, 3.8f, 0.30f, 0.05f, 100, -100, 80, 0.35f);
+    PID_Init(&leftPID, 3.7f, 0.30f, 0.05f, 100, -100, 80, 0.35f);
     PID_Init(&rightPID, 3.3f, 0.30f, 0.05f, 100, -100, 80, 0.35f);
-    PID_Init(&steerPID, 0.9f, 0.03f, 0.2f, 80, -80, 40, 0.7f);
+    PID_Init(&steerPID, 0.9f, 0.03f, 0.20f, 80, -80, 40, 0.7f);
     PID_Init(&anglePID, 1.3f, 0.15f, 0.5f, 40, -40, 30, 0.7f);
 
     /* 默认任务配置，确保Encoder圈距同步 */

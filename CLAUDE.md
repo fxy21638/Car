@@ -118,25 +118,25 @@ main() 超级循环:
 - **避障后必须在到达拐角前回到边线**继续循迹
 - 圈数 1-5 可通过菜单设定，单圈 ≤ 25 秒
 - **实现**: `ObstacleAvoidance_Task_v2()` — 编码器测距 + MPU6050 转角，不依赖延时（旧版 v1 保留在 `task.c`）
-- 圈距: 14300（比任务1略大，避障绕行路径更长）
+- 圈距: 18800（比任务1略大，避障绕行路径更长）
 
 ### 任务3/4 — 定点直线+对角线行驶（传感器触发版）
 
 路径: **A → B → D → C → A**。任务3执行 **1圈** 后停车，任务4执行 **4圈** 后停车。两者共用 `CornerTurn_Task_v2()`，仅 `g_targetCircles` 不同。
 
-不再预设各段航向和距离。改为**传感器触发**：识别到直角后原地转135°越过拐角，直行到下一线段，转回135°回归循线。
+不再预设各段航向和距离。改为**传感器触发**：识别到直角后原地转137°越过拐角，直行到下一线段，转回137°回归循线。
 
 ```
 每组操作 (过一个拐角):
-  检测直角(一侧4灯全黑) → 原地转135°(朝直角方向) → 直行(至见线/超距) → 转回135°(反向)
+  检测直角(一侧4灯全黑) → 原地转137°(朝对角方向) → 直行(至见线/超距) → 转回137°(反向)
 
 2组 = 1圈 (从A回到A)
 ```
 
 #### 直角检测
 
-- S0~S3 全部识别到**黑线** → 左直角 → 左转 -135°
-- S4~S7 全部识别到**黑线** → 右直角 → 右转 +135°
+- S0~S3 全部识别到**黑线** → 左直角 → 左转 +137° (`turnDir = +1`)
+- S4~S7 全部识别到**黑线** → 右直角 → 右转 -137° (`turnDir = -1`)
 - 连续 N 帧消抖防误触
 
 #### 直行结束条件（任一满足）
@@ -147,10 +147,10 @@ main() 超级循环:
 #### 关键实现要求
 
 1. **循线段**: 标准 `PID_control()`，直到传感器检测到直角
-2. **转角段**: `TurnToAngle()` 非阻塞原地转 135°
-3. **直行段**: `PID_control_head()` 纯速度环直行，编码器脉冲快照计距
-4. **转回段**: `TurnToAngle()` 反方向转 135°，完成后 `g_cornerSetsCompleted++`
-5. **停车**: 主循环检查 `g_cornerSetsCompleted >= g_targetCircles * 2` 时停车
+2. **转角段**: `TurnToAngle()` 非阻塞原地转 137°
+3. **直行段**: `PID_control_head()` 角度修正直行，编码器脉冲快照计距
+4. **转回段**: `TurnToAngle()` 转回 `origin_yaw`，完成后 `g_cornerSetsCompleted++`
+5. **停车**: 主循环检查 `Get_Current_Circles() >= g_targetCircles` 时停车
 
 ### 任务与圈距对应
 
@@ -158,10 +158,10 @@ main() 超级循环:
 
 | 任务 | 默认每圈脉冲数 | 圈数来源 | 停车判断 |
 | ---- | -------------- | -------- | -------- |
-| 任务1 纯循线 | 13000 (正方形480cm，编码器×4) | 用户设定 `g_targetCircles` | `Get_Current_Circles() >= g_targetCircles` |
-| 任务2 循线+避障 | 14300 (绕行路径更长) | 用户设定 `g_targetCircles` | `Get_Current_Circles() >= g_targetCircles` |
-| 任务3 对角线单程 | 16300 | 固定 1 | `Get_Current_Circles() >= g_targetCircles` |
-| 任务4 对角线4圈 | 16300 | 固定 4 | `Get_Current_Circles() >= g_targetCircles` |
+| 任务1 纯循线 | 17500 | 用户设定 `g_targetCircles` | `Get_Current_Circles() >= g_targetCircles` |
+| 任务2 循线+避障 | 18800 | 用户设定 `g_targetCircles` | `Get_Current_Circles() >= g_targetCircles` |
+| 任务3 对角线单程 | 21400 | 固定 1 | `Get_Current_Circles() >= g_targetCircles` |
+| 任务4 对角线4圈 | 21400 | 固定 4 | `Get_Current_Circles() >= g_targetCircles` |
 
 > **所有任务统一用编码器圈数停车**。转角 v2 状态机用脉冲快照计距不破坏累计值，`Get_Current_Circles()` 正常增长。
 
@@ -169,9 +169,9 @@ main() 超级循环:
 
 ```c
 菜单切换任务时:
-  任务1 → Encoder_SetPulsesPerCircle(13000)
-  任务2 → Encoder_SetPulsesPerCircle(14300)
-  任务3/4 → Encoder_SetPulsesPerCircle(16300)
+  任务1 → Encoder_SetPulsesPerCircle(17500)
+  任务2 → Encoder_SetPulsesPerCircle(18800)
+  任务3/4 → Encoder_SetPulsesPerCircle(21400)
 
 启动运行时 (K4):
   Encoder_ResetDistance()               // 清零累计脉冲
@@ -205,7 +205,7 @@ main() 超级循环:
 | 任务 | BASE_SPEED | g_baseSpeedTarget |
 |------|-----------|-------------------|
 | TASK_TRACE | 80 | 80 |
-| TASK_AVOID | 60 | 60 |
+| TASK_AVOID | 80 | 80 |
 | TASK_DIAG_1 | 80 | 80 |
 | TASK_DIAG_4 | 80 | 80 |
 
@@ -239,9 +239,9 @@ main() 超级循环:
 | `AVOID2_IDLE` | 正常循线 `PID_control()` | 超声波 `dist < 25cm` |
 | `AVOID2_STOP` | 停车，记录 `origin_yaw`，快照编码器 | 立即 |
 | `AVOID2_TURN_RIGHT` | `TurnToAngle(origin_yaw + 45°)` | `|err| < 5°` |
-| `AVOID2_FORWARD` | `PID_control_head(60,60)` 直行 | 编码器增量 > 1350 脉冲 |
-| `AVOID2_TURN_LEFT` | `TurnToAngle(origin_yaw - 45°)`（实际左转 90°） | `|err| < 5°` |
-| `AVOID2_SEEK_LINE` | `PID_control_head(60,60)` 寻线 | `is_lost==0` 找到线，或超时 2500 脉冲 |
+| `AVOID2_FORWARD` | `PID_control_head(AVOID_SPEED, origin_yaw + 45°)` 角度修正直行 | 编码器增量 > 1350 脉冲 |
+| `AVOID2_TURN_LEFT` | `TurnToAngle(origin_yaw - 45°)`（实际左转 90°） | `|err| < 3°` |
+| `AVOID2_SEEK_LINE` | `PID_control_head(AVOID_SPEED, origin_yaw - 45°)` 寻线 | `is_lost==0` 找到线，或超时 2500 脉冲 |
 
 ### 关键设计
 
@@ -277,7 +277,7 @@ IDLE(循线) → ADVANCE(前移对齐) → TURN1(转137°/朝对角方向) →
 | `CORNER2_IDLE` | `PID_control()` 循线 | 一侧4灯全黑 + 3帧消抖，记录 `origin_yaw` |
 | `CORNER2_ADVANCE` | `PID_control_head(CORNER_STRAIGHT_SPEED, origin_yaw)` 前移对齐旋转中心 | 编码器增量 > 200 脉冲 |
 | `CORNER2_TURN1` | `TurnToAngle(origin_yaw ± 137°)` 朝对角方向转 | 误差 < 3° |
-| `CORNER2_STRAIGHT` | `PID_control_head(80, origin_yaw ± 137°)` 角度修正直行 | 中双传感器(S3且S4)见线 或 编码器>6200脉冲 |
+| `CORNER2_STRAIGHT` | `PID_control_head(80, origin_yaw ± 137°)` 角度修正直行 | 中双传感器(S3且S4)见线 或 编码器>6100脉冲 |
 | `CORNER2_ADVANCE2` | `PID_control_head(80, origin_yaw ± 137°)` 见线后前移对齐 | 编码器增量 > 300 脉冲 |
 | `CORNER2_TURN2` | `TurnToAngle(origin_yaw)` 转回原始航向 | 误差 < 3°, g_cornerSetsCompleted++, 回IDLE |
 
@@ -293,18 +293,18 @@ IDLE(循线) → ADVANCE(前移对齐) → TURN1(转137°/朝对角方向) →
 
 ### 角度PID积分复位
 
-`PID_control_head` 直行期间会持续调用 `Angle_Control`，`anglePID` 积分项逐渐累积。进入 `TurnToAngle` 前必须 `PID_Reset(&anglePID)` 清零积分，否则旧积分会抵抗新目标方向的转动。当前在 ADVANCE→TURN1、STRAIGHT→ADVANCE2、ADVANCE2→TURN2 三处转换均已加入复位。
+`PID_control_head` 直行期间会持续调用 `Angle_Control`，`anglePID` 积分项逐渐累积。进入 `TurnToAngle` 前必须 `PID_Reset(&anglePID)` 清零积分，否则旧积分会抵抗新目标方向的转动。当前在 ADVANCE→TURN1 和 ADVANCE2→TURN2 两处转换均已加入复位。
 
 ### 停车逻辑
 
-所有任务统一用编码器圈数: `Get_Current_Circles() >= g_targetCircles`。圈距 20000/圈，转角 v2 用脉冲快照不破坏累计值。
+所有任务统一用编码器圈数: `Get_Current_Circles() >= g_targetCircles`。圈距 21400/圈，转角 v2 用脉冲快照不破坏累计值。
 
 ### 可调参数
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
 | `CORNER_TURN_DEG` | 137 | 转角角度 (度) |
-| `CORNER_STRAIGHT_PULSES` | 6200 | 直行最大距离 (编码器脉冲) |
+| `CORNER_STRAIGHT_PULSES` | 6100 | 直行最大距离 (编码器脉冲) |
 | `CORNER_STRAIGHT_SPEED` | 80 | 直行速度 (0~100) |
 | `CORNER_ADVANCE_PULSES` | 200 | 检角后前移距离，对齐旋转中心 |
 | `CORNER_RETURN_ADVANCE_PULSES` | 300 | 见线后前移距离，对齐后再转回 |
