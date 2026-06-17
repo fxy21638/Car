@@ -98,8 +98,16 @@ int main(void)
 
             //VOFA_SendSpeedLoop();
 
-            /* 停车判断：所有任务统一用编码器圈数 */
-            if (Get_Current_Circles() >= g_targetCircles)
+            /* 停车判断：任务1/2用编码器圈数，任务3/4统计转角次数(每圈4次) */
+            if (g_taskType >= TASK_DIAG_1)
+            {
+                if (g_cornerTurnsCompleted >= g_targetCircles * 4)
+                {
+                    g_running = 0;
+                    Set_PWM(0, 0);
+                }
+            }
+            else if (Get_Current_Circles() >= g_targetCircles)
             {
                 g_running = 0;
                 Set_PWM(0, 0);
@@ -204,7 +212,7 @@ static void TaskSwitchConfig(TaskType task)
         g_baseSpeedTarget = 80;
         break;
     case TASK_AVOID:
-        Encoder_SetPulsesPerCircle(18800);
+        Encoder_SetPulsesPerCircle(19000);
         g_targetCircles = g_lastUserLaps;
         BASE_SPEED = 80;
         g_baseSpeedTarget = 80;
@@ -356,7 +364,7 @@ void System_Init(void)
     /* 控制器默认参数 */
     PID_Init(&leftPID, 3.7f, 0.30f, 0.05f, 100, -100, 80, 0.35f);
     PID_Init(&rightPID, 3.3f, 0.30f, 0.05f, 100, -100, 80, 0.35f);
-    PID_Init(&steerPID, 0.9f, 0.03f, 0.20f, 80, -80, 40, 0.7f);
+    PID_Init(&steerPID, 0.9f, 0.03f, 0.30f, 80, -80, 40, 0.7f);
     PID_Init(&anglePID, 1.3f, 0.15f, 0.5f, 40, -40, 30, 0.7f);
 
     /* 默认任务配置，确保Encoder圈距同步 */

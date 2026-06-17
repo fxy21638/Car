@@ -18,6 +18,7 @@ extern "C"
 
     void CornerTurn_Task_v2(void);
     void CornerTurn_Task_v2_Reset(void);
+    extern uint8_t g_cornerTurnsCompleted;
 
 #ifdef __cplusplus
 }

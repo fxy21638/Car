@@ -154,7 +154,7 @@ void ObstacleAvoidance_Task_v2_Reset(void)
 /* ---- 转向 v2 状态机：传感器检角 + 编码器+MPU6050 对角导航 ----
  * 轨迹: 检测直角 → 前移对齐 → 转137°(朝对角方向) → 直行过对角 →
  *       见线后前移 → 转回 origin_yaw(两端线段平行，回正即可循线)
- * 地图内启动，正方形赛道: 2组 = 1圈 (从A回到A)
+ * 地图内启动，正方形赛道: 4次转角 = 1圈 (从A回到A)
  */
 typedef enum
 {
@@ -170,7 +170,7 @@ static CornerStageV2 g_corner2Stage = CORNER2_IDLE;
 static int32_t g_cornerSegStartPulses = 0;
 static int g_cornerTurnDir = 0; /* 1=右转, -1=左转 */
 static int g_cornerDetectDebounce = 0;
-uint8_t g_cornerSetsCompleted = 0; /* 已完成拐角组数 */
+uint8_t g_cornerTurnsCompleted = 0; /* 已完成转角次数 (TURN1+TURN2)，4次=1圈 */
 
 extern uint8_t g_running;
 
@@ -228,6 +228,7 @@ void CornerTurn_Task_v2(void)
         float diff = angle_diff(target, yaw);
         if (diff < CORNER_CONVERGE_THRESH && diff > -CORNER_CONVERGE_THRESH)
         {
+            g_cornerTurnsCompleted++;
             g_cornerSegStartPulses = Encoder_GetDistancePulses();
             g_corner2Stage = CORNER2_STRAIGHT;
         }
@@ -277,7 +278,7 @@ void CornerTurn_Task_v2(void)
         float diff = angle_diff(target, yaw);
         if (diff < CORNER_CONVERGE_THRESH && diff > -CORNER_CONVERGE_THRESH)
         {
-            g_cornerSetsCompleted++;
+            g_cornerTurnsCompleted++;
             g_corner2Stage = CORNER2_IDLE;
         }
         else
@@ -293,5 +294,5 @@ void CornerTurn_Task_v2_Reset(void)
 {
     g_corner2Stage = CORNER2_IDLE;
     g_cornerDetectDebounce = 0;
-    g_cornerSetsCompleted = 0;
+    g_cornerTurnsCompleted = 0;
 }
