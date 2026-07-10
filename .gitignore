@@ -3,6 +3,8 @@ Debug/
 Release/
 Objects/
 Listings/
+platform/gcc/build/
+tests/host/build/
 
 # Compiled files
 *.o
