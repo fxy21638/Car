@@ -69,7 +69,7 @@ void ObstacleAvoidance_Task_v2(void)
         break;
 
     case AVOID2_STOP:
-        Set_PWM(0, 0);           /* 停车快照，一帧后立即进入右转，避免惯性冲过 */
+        Set_PWM(0, 0); /* 停车快照，一帧后立即进入右转，避免惯性冲过 */
         origin_yaw = yaw;
         g_segmentStartPulses = Encoder_GetDistancePulses();
         g_avoid2Stage = AVOID2_TURN_RIGHT;
@@ -143,13 +143,13 @@ void ObstacleAvoidance_Task_v2_Reset(void)
 }
 
 /* ---- 转向 v2 参数 ---- */
-#define CORNER_TURN_DEG 137         /* 转角角度 (度) */
-#define CORNER_STRAIGHT_PULSES 6100 /* 直行最大距离 (编码器脉冲，约94cm) */
-#define CORNER_STRAIGHT_SPEED 80    /* 直行速度 (0~100) */
-#define CORNER_ADVANCE_PULSES 200   /* 检角后前移距离 (编码器脉冲，约19cm) */
+#define CORNER_TURN_DEG 137              /* 转角角度 (度) */
+#define CORNER_STRAIGHT_PULSES 6100      /* 直行最大距离 (编码器脉冲，约94cm) */
+#define CORNER_STRAIGHT_SPEED 80         /* 直行速度 (0~100) */
+#define CORNER_ADVANCE_PULSES 200        /* 检角后前移距离 (编码器脉冲，约19cm) */
 #define CORNER_RETURN_ADVANCE_PULSES 300 /* 见线后前移距离，对齐旋转中心再转回 */
-#define CORNER_CONVERGE_THRESH 3.0f /* 转向到位阈值 (度) */
-#define CORNER_DETECT_DEBOUNCE 3    /* 直角检测消抖帧数 */
+#define CORNER_CONVERGE_THRESH 3.0f      /* 转向到位阈值 (度) */
+#define CORNER_DETECT_DEBOUNCE 3         /* 直角检测消抖帧数 */
 
 /* ---- 转向 v2 状态机：传感器检角 + 编码器+MPU6050 对角导航 ----
  * 轨迹: 检测直角 → 前移对齐 → 转137°(朝对角方向) → 直行过对角 →
@@ -258,8 +258,7 @@ void CornerTurn_Task_v2(void)
 
     case CORNER2_ADVANCE2:
         /* 传感器见线时旋转中心尚未到达线段，前移对齐后再转回原始航向 */
-        if (Encoder_GetDistancePulses() - g_cornerSegStartPulses
-            > CORNER_RETURN_ADVANCE_PULSES)
+        if (Encoder_GetDistancePulses() - g_cornerSegStartPulses > CORNER_RETURN_ADVANCE_PULSES)
         {
             PID_Reset(&anglePID); /* 清空直行积分，为转回 origin_yaw 准备 */
             g_corner2Stage = CORNER2_TURN2;

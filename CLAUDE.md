@@ -316,14 +316,14 @@ IDLE(循线) → ADVANCE(前移对齐) → TURN1(转137°/朝对角方向) →
 | 外设 | 引脚 |
 |------|------|
 | 电机PWM | PB20 (左), PA25 (右) |
-| 电机方向(H桥) | PA24/AIN1, PA16/AIN2, PB6/BIN1, PB7/BIN2 |
-| 编码器A | PA15(E1A), PA14(E1B) |
+| 电机方向(H桥) | PA24/AIN1, PA17/AIN2, PB6/BIN1, PB7/BIN2 |
+| 编码器A | PA15(E1A), PA16(E1B) |
 | 编码器B | PA13(E2A), PA12(E2B) |
-| 循线传感器 S0-S7 | PB24, PB14, PB19, PB18, PB17, PB16, PB2, PB9 |
+| 循线传感器 S0-S7 | PA22, PB18, PA8, PB24, PB9, PA27, PB2, PB3 |
 | OLED I2C | PA0(SDA), PA1(SCL) |
 | MPU6050 I2C | PA7(SDA), PA6(SCL) |
 | 超声波 | PB8(Trig), PB15(Echo) |
-| 按键 K1-K4 | PA22, PA27, PA28, PA31 |
+| 按键 K1-K4 | PB16, PB17, PA28, PA31 |
 | UART0 | PA10(TX), PA11(RX) |
 | LED | PA2 |
 

@@ -8,8 +8,6 @@
 /**
  * Import the modules used in this configuration.
  */
-const CAPTURE       = scripting.addModule("/ti/driverlib/CAPTURE", {}, false);
-const CAPTURE1      = CAPTURE.addInstance();
 const GPIO          = scripting.addModule("/ti/driverlib/GPIO", {}, false);
 const GPIO1         = GPIO.addInstance();
 const GPIO2         = GPIO.addInstance();
@@ -51,46 +49,32 @@ mux8.inputSelect = "HSCLKMUX_SYSPLL2X";
 const pinFunction4       = system.clockTree["HFXT"];
 pinFunction4.HFXTStartup = 10;
 
-CAPTURE1.$name                      = "CAPTURE_0";
-CAPTURE1.timerPeriod                = "10 ms";
-CAPTURE1.timerClkPrescale           = 256;
-CAPTURE1.timerClkDiv                = 8;
-CAPTURE1.peripheral.$assign         = "TIMA1";
-CAPTURE1.peripheral.ccp0Pin.$assign = "PA17";
-CAPTURE1.ccp0PinConfig.$name        = "ti_driverlib_gpio_GPIOPinGeneric2";
-
-const Board                       = scripting.addModule("/ti/driverlib/Board", {}, false);
-Board.peripheral.$assign          = "DEBUGSS";
-Board.peripheral.swclkPin.$assign = "PA20";
-Board.peripheral.swdioPin.$assign = "PA19";
-
 GPIO1.$name                         = "TRACK_SENSOR";
-GPIO1.port                          = "PORTB";
 GPIO1.associatedPins.create(8);
 GPIO1.associatedPins[0].direction   = "INPUT";
 GPIO1.associatedPins[0].ioStructure = "SD";
 GPIO1.associatedPins[0].$name       = "S0";
-GPIO1.associatedPins[0].pin.$assign = "PB24";
+GPIO1.associatedPins[0].pin.$assign = "PA22";
 GPIO1.associatedPins[1].$name       = "S1";
 GPIO1.associatedPins[1].direction   = "INPUT";
 GPIO1.associatedPins[1].ioStructure = "SD";
-GPIO1.associatedPins[1].pin.$assign = "PB14";
+GPIO1.associatedPins[1].pin.$assign = "PB18";
 GPIO1.associatedPins[2].$name       = "S2";
 GPIO1.associatedPins[2].direction   = "INPUT";
 GPIO1.associatedPins[2].ioStructure = "SD";
-GPIO1.associatedPins[2].pin.$assign = "PB19";
+GPIO1.associatedPins[2].pin.$assign = "PA8";
 GPIO1.associatedPins[3].$name       = "S3";
 GPIO1.associatedPins[3].direction   = "INPUT";
 GPIO1.associatedPins[3].ioStructure = "SD";
-GPIO1.associatedPins[3].pin.$assign = "PB18";
+GPIO1.associatedPins[3].pin.$assign = "PB24";
 GPIO1.associatedPins[4].$name       = "S4";
 GPIO1.associatedPins[4].direction   = "INPUT";
 GPIO1.associatedPins[4].ioStructure = "SD";
-GPIO1.associatedPins[4].pin.$assign = "PB17";
+GPIO1.associatedPins[4].pin.$assign = "PB9";
 GPIO1.associatedPins[5].$name       = "S5";
 GPIO1.associatedPins[5].direction   = "INPUT";
 GPIO1.associatedPins[5].ioStructure = "SD";
-GPIO1.associatedPins[5].pin.$assign = "PB16";
+GPIO1.associatedPins[5].pin.$assign = "PA27";
 GPIO1.associatedPins[6].$name       = "S6";
 GPIO1.associatedPins[6].direction   = "INPUT";
 GPIO1.associatedPins[6].ioStructure = "SD";
@@ -98,14 +82,19 @@ GPIO1.associatedPins[6].pin.$assign = "PB2";
 GPIO1.associatedPins[7].$name       = "S7";
 GPIO1.associatedPins[7].direction   = "INPUT";
 GPIO1.associatedPins[7].ioStructure = "SD";
-GPIO1.associatedPins[7].pin.$assign = "PB9";
+GPIO1.associatedPins[7].pin.$assign = "PB3";
+
+const Board                       = scripting.addModule("/ti/driverlib/Board", {}, false);
+Board.peripheral.$assign          = "DEBUGSS";
+Board.peripheral.swclkPin.$assign = "PA20";
+Board.peripheral.swdioPin.$assign = "PA19";
 
 GPIO2.$name                         = "MOTOR";
 GPIO2.associatedPins.create(4);
 GPIO2.associatedPins[0].$name       = "AIN1";
 GPIO2.associatedPins[0].pin.$assign = "PA24";
 GPIO2.associatedPins[1].$name       = "AIN2";
-GPIO2.associatedPins[1].pin.$assign = "PA16";
+GPIO2.associatedPins[1].pin.$assign = "PA17";
 GPIO2.associatedPins[2].$name       = "BIN1";
 GPIO2.associatedPins[2].pin.$assign = "PB6";
 GPIO2.associatedPins[3].$name       = "BIN2";
@@ -125,7 +114,7 @@ GPIO3.associatedPins[1].direction        = "INPUT";
 GPIO3.associatedPins[1].internalResistor = "PULL_UP";
 GPIO3.associatedPins[1].interruptEn      = true;
 GPIO3.associatedPins[1].polarity         = "RISE";
-GPIO3.associatedPins[1].pin.$assign      = "PA14";
+GPIO3.associatedPins[1].pin.$assign      = "PA16";
 
 GPIO4.$name                               = "ENCODERB";
 GPIO4.port                                = "PORTA";
@@ -154,14 +143,13 @@ GPIO5.associatedPins[1].$name       = "SCL";
 GPIO5.associatedPins[1].pin.$assign = "PA1";
 
 GPIO6.$name                         = "Key_Pins";
-GPIO6.port                          = "PORTA";
 GPIO6.associatedPins.create(4);
 GPIO6.associatedPins[0].$name       = "PIN_0";
 GPIO6.associatedPins[0].direction   = "INPUT";
-GPIO6.associatedPins[0].pin.$assign = "PA22";
+GPIO6.associatedPins[0].pin.$assign = "PB16";
 GPIO6.associatedPins[1].$name       = "PIN_1";
 GPIO6.associatedPins[1].direction   = "INPUT";
-GPIO6.associatedPins[1].pin.$assign = "PA27";
+GPIO6.associatedPins[1].pin.$assign = "PB17";
 GPIO6.associatedPins[2].$name       = "PIN_2";
 GPIO6.associatedPins[2].direction   = "INPUT";
 GPIO6.associatedPins[2].pin.$assign = "PA28";

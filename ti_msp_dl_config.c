@@ -40,7 +40,6 @@
 
 #include "ti_msp_dl_config.h"
 
-DL_TimerA_backupConfig gCAPTURE_0Backup;
 DL_TimerA_backupConfig gTIMER_0Backup;
 
 /*
@@ -54,13 +53,11 @@ SYSCONFIG_WEAK void SYSCFG_DL_init(void)
     /* Module-Specific Initializations*/
     SYSCFG_DL_SYSCTL_init();
     SYSCFG_DL_PWM_0_init();
-    SYSCFG_DL_CAPTURE_0_init();
     SYSCFG_DL_TIMER_0_init();
     SYSCFG_DL_TIMER_US_init();
     SYSCFG_DL_UART_0_init();
     /* Ensure backup structures have no valid state */
 
-	gCAPTURE_0Backup.backupRdy 	= false;
 	gTIMER_0Backup.backupRdy 	= false;
 
 
@@ -73,7 +70,6 @@ SYSCONFIG_WEAK bool SYSCFG_DL_saveConfiguration(void)
 {
     bool retStatus = true;
 
-	retStatus &= DL_TimerA_saveConfiguration(CAPTURE_0_INST, &gCAPTURE_0Backup);
 	retStatus &= DL_TimerA_saveConfiguration(TIMER_0_INST, &gTIMER_0Backup);
 
     return retStatus;
@@ -84,7 +80,6 @@ SYSCONFIG_WEAK bool SYSCFG_DL_restoreConfiguration(void)
 {
     bool retStatus = true;
 
-	retStatus &= DL_TimerA_restoreConfiguration(CAPTURE_0_INST, &gCAPTURE_0Backup, false);
 	retStatus &= DL_TimerA_restoreConfiguration(TIMER_0_INST, &gTIMER_0Backup, false);
 
     return retStatus;
@@ -95,7 +90,6 @@ SYSCONFIG_WEAK void SYSCFG_DL_initPower(void)
     DL_GPIO_reset(GPIOA);
     DL_GPIO_reset(GPIOB);
     DL_TimerG_reset(PWM_0_INST);
-    DL_TimerA_reset(CAPTURE_0_INST);
     DL_TimerA_reset(TIMER_0_INST);
     DL_TimerG_reset(TIMER_US_INST);
     DL_UART_Main_reset(UART_0_INST);
@@ -103,7 +97,6 @@ SYSCONFIG_WEAK void SYSCFG_DL_initPower(void)
     DL_GPIO_enablePower(GPIOA);
     DL_GPIO_enablePower(GPIOB);
     DL_TimerG_enablePower(PWM_0_INST);
-    DL_TimerA_enablePower(CAPTURE_0_INST);
     DL_TimerA_enablePower(TIMER_0_INST);
     DL_TimerG_enablePower(TIMER_US_INST);
     DL_UART_Main_enablePower(UART_0_INST);
@@ -123,8 +116,6 @@ SYSCONFIG_WEAK void SYSCFG_DL_GPIO_init(void)
 	DL_GPIO_initPeripheralOutputFunction(
 		 GPIO_PWM_0_C1_IOMUX, GPIO_PWM_0_C1_IOMUX_FUNC);
 
-    DL_GPIO_initPeripheralInputFunction(GPIO_CAPTURE_0_C0_IOMUX,GPIO_CAPTURE_0_C0_IOMUX_FUNC);
-
     DL_GPIO_initPeripheralOutputFunction(
         GPIO_UART_0_IOMUX_TX, GPIO_UART_0_IOMUX_TX_FUNC);
     DL_GPIO_initPeripheralInputFunction(
@@ -132,37 +123,21 @@ SYSCONFIG_WEAK void SYSCFG_DL_GPIO_init(void)
 
     DL_GPIO_initDigitalOutput(LEDB_LED_IOMUX);
 
-    DL_GPIO_initDigitalInputFeatures(TRACK_SENSOR_S0_IOMUX,
-		 DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_NONE,
-		 DL_GPIO_HYSTERESIS_DISABLE, DL_GPIO_WAKEUP_DISABLE);
+    DL_GPIO_initDigitalInput(TRACK_SENSOR_S0_IOMUX);
 
-    DL_GPIO_initDigitalInputFeatures(TRACK_SENSOR_S1_IOMUX,
-		 DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_NONE,
-		 DL_GPIO_HYSTERESIS_DISABLE, DL_GPIO_WAKEUP_DISABLE);
+    DL_GPIO_initDigitalInput(TRACK_SENSOR_S1_IOMUX);
 
-    DL_GPIO_initDigitalInputFeatures(TRACK_SENSOR_S2_IOMUX,
-		 DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_NONE,
-		 DL_GPIO_HYSTERESIS_DISABLE, DL_GPIO_WAKEUP_DISABLE);
+    DL_GPIO_initDigitalInput(TRACK_SENSOR_S2_IOMUX);
 
-    DL_GPIO_initDigitalInputFeatures(TRACK_SENSOR_S3_IOMUX,
-		 DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_NONE,
-		 DL_GPIO_HYSTERESIS_DISABLE, DL_GPIO_WAKEUP_DISABLE);
+    DL_GPIO_initDigitalInput(TRACK_SENSOR_S3_IOMUX);
 
-    DL_GPIO_initDigitalInputFeatures(TRACK_SENSOR_S4_IOMUX,
-		 DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_NONE,
-		 DL_GPIO_HYSTERESIS_DISABLE, DL_GPIO_WAKEUP_DISABLE);
+    DL_GPIO_initDigitalInput(TRACK_SENSOR_S4_IOMUX);
 
-    DL_GPIO_initDigitalInputFeatures(TRACK_SENSOR_S5_IOMUX,
-		 DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_NONE,
-		 DL_GPIO_HYSTERESIS_DISABLE, DL_GPIO_WAKEUP_DISABLE);
+    DL_GPIO_initDigitalInput(TRACK_SENSOR_S5_IOMUX);
 
-    DL_GPIO_initDigitalInputFeatures(TRACK_SENSOR_S6_IOMUX,
-		 DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_NONE,
-		 DL_GPIO_HYSTERESIS_DISABLE, DL_GPIO_WAKEUP_DISABLE);
+    DL_GPIO_initDigitalInput(TRACK_SENSOR_S6_IOMUX);
 
-    DL_GPIO_initDigitalInputFeatures(TRACK_SENSOR_S7_IOMUX,
-		 DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_NONE,
-		 DL_GPIO_HYSTERESIS_DISABLE, DL_GPIO_WAKEUP_DISABLE);
+    DL_GPIO_initDigitalInput(TRACK_SENSOR_S7_IOMUX);
 
     DL_GPIO_initDigitalOutput(MOTOR_AIN1_IOMUX);
 
@@ -192,27 +167,17 @@ SYSCONFIG_WEAK void SYSCFG_DL_GPIO_init(void)
 
     DL_GPIO_initDigitalOutput(OLED_Pin_SCL_IOMUX);
 
-    DL_GPIO_initDigitalInputFeatures(Key_Pins_PIN_0_IOMUX,
-		 DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_NONE,
-		 DL_GPIO_HYSTERESIS_DISABLE, DL_GPIO_WAKEUP_DISABLE);
+    DL_GPIO_initDigitalInput(Key_Pins_PIN_0_IOMUX);
 
-    DL_GPIO_initDigitalInputFeatures(Key_Pins_PIN_1_IOMUX,
-		 DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_NONE,
-		 DL_GPIO_HYSTERESIS_DISABLE, DL_GPIO_WAKEUP_DISABLE);
+    DL_GPIO_initDigitalInput(Key_Pins_PIN_1_IOMUX);
 
-    DL_GPIO_initDigitalInputFeatures(Key_Pins_PIN_2_IOMUX,
-		 DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_NONE,
-		 DL_GPIO_HYSTERESIS_DISABLE, DL_GPIO_WAKEUP_DISABLE);
+    DL_GPIO_initDigitalInput(Key_Pins_PIN_2_IOMUX);
 
-    DL_GPIO_initDigitalInputFeatures(Key_Pins_PIN_3_IOMUX,
-		 DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_NONE,
-		 DL_GPIO_HYSTERESIS_DISABLE, DL_GPIO_WAKEUP_DISABLE);
+    DL_GPIO_initDigitalInput(Key_Pins_PIN_3_IOMUX);
 
     DL_GPIO_initDigitalOutput(Ultrasonic_Pins_Trig_Pin_IOMUX);
 
-    DL_GPIO_initDigitalInputFeatures(Ultrasonic_Pins_Echo_Pin_IOMUX,
-		 DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_NONE,
-		 DL_GPIO_HYSTERESIS_DISABLE, DL_GPIO_WAKEUP_DISABLE);
+    DL_GPIO_initDigitalInput(Ultrasonic_Pins_Echo_Pin_IOMUX);
 
     DL_GPIO_initDigitalOutputFeatures(MPU6050_MPU_SDA_IOMUX,
 		 DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_PULL_UP,
@@ -237,9 +202,9 @@ SYSCONFIG_WEAK void SYSCFG_DL_GPIO_init(void)
 		MPU6050_MPU_SDA_PIN |
 		MPU6050_MPU_SCL_PIN);
     DL_GPIO_setLowerPinsPolarity(GPIOA, DL_GPIO_PIN_15_EDGE_RISE |
-		DL_GPIO_PIN_14_EDGE_RISE |
 		DL_GPIO_PIN_13_EDGE_RISE |
 		DL_GPIO_PIN_12_EDGE_RISE);
+    DL_GPIO_setUpperPinsPolarity(GPIOA, DL_GPIO_PIN_16_EDGE_RISE);
     DL_GPIO_clearInterruptStatus(GPIOA, ENCODERA_E1A_PIN |
 		ENCODERA_E1B_PIN |
 		ENCODERB_E2A_PIN |
@@ -306,7 +271,6 @@ static const DL_TimerG_ClockConfig gPWM_0ClockConfig = {
 static const DL_TimerG_PWMConfig gPWM_0Config = {
     .pwmMode = DL_TIMER_PWM_MODE_EDGE_ALIGN_UP,
     .period = 1000,
-    .isTimerWithFourCC = false,
     .startTimer = DL_TIMER_START,
 };
 
@@ -317,9 +281,6 @@ SYSCONFIG_WEAK void SYSCFG_DL_PWM_0_init(void) {
 
     DL_TimerG_initPWMMode(
         PWM_0_INST, (DL_TimerG_PWMConfig *) &gPWM_0Config);
-
-    // Set Counter control to the smallest CC index being used
-    DL_TimerG_setCounterControl(PWM_0_INST,DL_TIMER_CZC_CCCTL0_ZCOND,DL_TIMER_CAC_CCCTL0_ACOND,DL_TIMER_CLC_CCCTL0_LCOND);
 
     DL_TimerG_setCaptureCompareOutCtl(PWM_0_INST, DL_TIMER_CC_OCTL_INIT_VAL_LOW,
 		DL_TIMER_CC_OCTL_INV_OUT_DISABLED, DL_TIMER_CC_OCTL_SRC_FUNCVAL,
@@ -344,42 +305,6 @@ SYSCONFIG_WEAK void SYSCFG_DL_PWM_0_init(void) {
 
 }
 
-
-
-/*
- * Timer clock configuration to be sourced by BUSCLK /  (10000000 Hz)
- * timerClkFreq = (timerClkSrc / (timerClkDivRatio * (timerClkPrescale + 1)))
- *   39062.5 Hz = 10000000 Hz / (8 * (255 + 1))
- */
-static const DL_TimerA_ClockConfig gCAPTURE_0ClockConfig = {
-    .clockSel    = DL_TIMER_CLOCK_BUSCLK,
-    .divideRatio = DL_TIMER_CLOCK_DIVIDE_8,
-    .prescale = 255U
-};
-
-/*
- * Timer load value (where the counter starts from) is calculated as (timerPeriod * timerClockFreq) - 1
- * CAPTURE_0_INST_LOAD_VALUE = (10 ms * 39062.5 Hz) - 1
- */
-static const DL_TimerA_CaptureConfig gCAPTURE_0CaptureConfig = {
-    .captureMode    = DL_TIMER_CAPTURE_MODE_EDGE_TIME,
-    .period         = CAPTURE_0_INST_LOAD_VALUE,
-    .startTimer     = DL_TIMER_STOP,
-    .edgeCaptMode   = DL_TIMER_CAPTURE_EDGE_DETECTION_MODE_RISING,
-    .inputChan      = DL_TIMER_INPUT_CHAN_0,
-    .inputInvMode   = DL_TIMER_CC_INPUT_INV_NOINVERT,
-};
-
-SYSCONFIG_WEAK void SYSCFG_DL_CAPTURE_0_init(void) {
-
-    DL_TimerA_setClockConfig(CAPTURE_0_INST,
-        (DL_TimerA_ClockConfig *) &gCAPTURE_0ClockConfig);
-
-    DL_TimerA_initCaptureMode(CAPTURE_0_INST,
-        (DL_TimerA_CaptureConfig *) &gCAPTURE_0CaptureConfig);
-    DL_TimerA_enableClock(CAPTURE_0_INST);
-
-}
 
 
 /*
@@ -456,6 +381,7 @@ SYSCONFIG_WEAK void SYSCFG_DL_TIMER_US_init(void) {
 
 
 }
+
 
 
 static const DL_UART_Main_ClockConfig gUART_0ClockConfig = {

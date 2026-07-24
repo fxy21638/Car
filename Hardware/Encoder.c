@@ -1,5 +1,7 @@
 #include "ti_msp_dl_config.h"
 #include "Encoder.h"
+#include "Uart.h"
+#include "Delay.h"
 
 // 全局变量
 volatile int32_t Get_Encoder_countA = 0; // 左轮实时计数
@@ -155,4 +157,30 @@ void GROUP1_IRQHandler(void)
 void Encoder_SetPulsesPerCircle(uint32_t pulses)
 {
     s_pulsesPerCircle = pulses;
+}
+
+/* 编码器调试打印：每 200ms 通过串口输出编码器值，用于排查编码器硬件是否正常 */
+void Encoder_DebugPrint(void)
+{
+    static unsigned long lastPrintMs = 0;
+    unsigned long nowMs = tick_ms;
+
+    if ((nowMs - lastPrintMs) < 200UL && lastPrintMs != 0)
+        return;
+    lastPrintMs = nowMs;
+
+    /* 累计脉冲 (前进+，后退-) */
+    Uart_SendString("LA:");
+    Uart_SendInt((int)s_totalCountA);
+    Uart_SendString(" LB:");
+    Uart_SendInt((int)s_totalCountB);
+    /* 10ms速度值 */
+    Uart_SendString(" SA:");
+    Uart_SendInt((int)encoderA_cnt);
+    Uart_SendString(" SB:");
+    Uart_SendInt((int)encoderB_cnt);
+    /* 距离脉冲 */
+    Uart_SendString(" D:");
+    Uart_SendInt((int)Encoder_GetDistancePulses());
+    Uart_SendString("\r\n");
 }

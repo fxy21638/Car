@@ -67,13 +67,13 @@ int main(void)
     while (1)
     {
         /* 读取循迹传感器位置 */
-         linePos = Sensor_GetQuantizedPos();
+        linePos = Sensor_GetQuantizedPos();
 
         /* 超声波非阻塞测距（始终运行） */
         Ultrasonic_Task(tick_ms);
         dist = Ultrasonic_GetDistanceCm();
 
-        /* 更新 MPU6050 Yaw（TIMA0 10ms定时触发，始终运行） */
+        /* 更新 MPU6050 Yaw（TIMA0 10ms定时触发） */
         if (g_mpu6050_flag)
         {
             MPU6050_UpdateYaw(&gImu, tick_ms);
@@ -88,17 +88,13 @@ int main(void)
 
         if (g_running)
         {
-            /* 根据任务类型选择控制函数 */
             if (g_taskType == TASK_TRACE)
                 PID_control();
             else if (g_taskType == TASK_AVOID)
                 ObstacleAvoidance_Task_v2();
-            else  /* TASK_DIAG_1 / TASK_DIAG_4 */
+            else
                 CornerTurn_Task_v2();
 
-            //VOFA_SendSpeedLoop();
-
-            /* 停车判断：任务1/2用编码器圈数，任务3/4统计转角次数(每圈4次) */
             if (g_taskType >= TASK_DIAG_1)
             {
                 if (g_cornerTurnsCompleted >= g_targetCircles * 4)
@@ -123,8 +119,6 @@ int main(void)
             OlED_show();
         }
         OLED_Task();
-		
-		//Test_MPU6050_TurnToAngle();
 
         Uart_PollTx();
 
@@ -174,7 +168,7 @@ void OlED_show(void)
 
         OLED_ShowString(0, 32, "Spd:", OLED_8X16);
         OLED_ShowNum(32, 32, BASE_SPEED, 2, OLED_8X16);
-        OLED_ShowString(56, 32, "Dis:", OLED_8X16);
+        OLED_ShowString(56, 32, "dist:", OLED_8X16);
         OLED_ShowSignedNum(88, 32, dist, 4, OLED_8X16);
 
         OLED_ShowString(0, 48, "K1:Stop", OLED_8X16);
@@ -362,9 +356,9 @@ void System_Init(void)
     }
 
     /* 控制器默认参数 */
-    PID_Init(&leftPID, 3.7f, 0.30f, 0.05f, 100, -100, 80, 0.35f);
-    PID_Init(&rightPID, 3.3f, 0.30f, 0.05f, 100, -100, 80, 0.35f);
-    PID_Init(&steerPID, 0.9f, 0.03f, 0.30f, 80, -80, 40, 0.7f);
+    PID_Init(&leftPID, 3.7f, 0.15f, 0.05f, 100, -100, 80, 0.35f);
+    PID_Init(&rightPID, 3.3f, 0.15f, 0.05f, 100, -100, 80, 0.35f);
+    PID_Init(&steerPID, 0.7f, 0.03f, 0.30f, 80, -80, 40, 0.7f);
     PID_Init(&anglePID, 1.3f, 0.15f, 0.5f, 40, -40, 30, 0.7f);
 
     /* 默认任务配置，确保Encoder圈距同步 */

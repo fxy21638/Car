@@ -33,21 +33,21 @@ int Sensor_GetState(int i)
     switch (i)
     {
     case 0:
-        return GPIO_ReadPin(TRACK_SENSOR_PORT, TRACK_SENSOR_S0_PIN);
+        return GPIO_ReadPin(TRACK_SENSOR_S0_PORT, TRACK_SENSOR_S0_PIN);
     case 1:
-        return GPIO_ReadPin(TRACK_SENSOR_PORT, TRACK_SENSOR_S1_PIN);
+        return GPIO_ReadPin(TRACK_SENSOR_S1_PORT, TRACK_SENSOR_S1_PIN);
     case 2:
-        return GPIO_ReadPin(TRACK_SENSOR_PORT, TRACK_SENSOR_S2_PIN);
+        return GPIO_ReadPin(TRACK_SENSOR_S2_PORT, TRACK_SENSOR_S2_PIN);
     case 3:
-        return GPIO_ReadPin(TRACK_SENSOR_PORT, TRACK_SENSOR_S3_PIN);
+        return GPIO_ReadPin(TRACK_SENSOR_S3_PORT, TRACK_SENSOR_S3_PIN);
     case 4:
-        return GPIO_ReadPin(TRACK_SENSOR_PORT, TRACK_SENSOR_S4_PIN);
+        return GPIO_ReadPin(TRACK_SENSOR_S4_PORT, TRACK_SENSOR_S4_PIN);
     case 5:
-        return GPIO_ReadPin(TRACK_SENSOR_PORT, TRACK_SENSOR_S5_PIN);
+        return GPIO_ReadPin(TRACK_SENSOR_S5_PORT, TRACK_SENSOR_S5_PIN);
     case 6:
-        return GPIO_ReadPin(TRACK_SENSOR_PORT, TRACK_SENSOR_S6_PIN);
+        return GPIO_ReadPin(TRACK_SENSOR_S6_PORT, TRACK_SENSOR_S6_PIN);
     case 7:
-        return GPIO_ReadPin(TRACK_SENSOR_PORT, TRACK_SENSOR_S7_PIN);
+        return GPIO_ReadPin(TRACK_SENSOR_S7_PORT, TRACK_SENSOR_S7_PIN);
     default:
         return -1;
     }

@@ -19,5 +19,6 @@ void Encoder_ResetDistance(void);
 float Get_Current_Circles(void);
 int32_t Encoder_GetDistancePulses(void);
 void Encoder_SetPulsesPerCircle(uint32_t pulses);
+void Encoder_DebugPrint(void);
 
 #endif
