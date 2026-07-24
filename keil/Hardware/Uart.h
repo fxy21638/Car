@@ -11,7 +11,8 @@ void Uart_SendByte(uint8_t byte);
 void Uart_SendBytes(const uint8_t *data, uint32_t len);
 void Uart_SendString(const char *s);
 void Uart_SendInt(int num);
-void VOFA_SendSpeedLoop(void);
+#include "robot.h"
+void VOFA_SendSpeedLoop(RobotState *rs);
 void show_dis(void);
 
 #endif 

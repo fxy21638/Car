@@ -18,5 +18,6 @@
 #include "task_v2.h"
 #include "Uart.h"
 #include "Ultrasonic.h"
+#include "robot.h"
 
 #endif

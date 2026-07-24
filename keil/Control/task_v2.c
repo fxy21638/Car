@@ -1,5 +1,6 @@
 #include "task_v2.h"
 #include "Sensor.h"
+#include "robot.h"
 
 /* ---- 避障参数 (实车标定后调整) ----
  *  轨迹: 右转45° → 直行绕过 → 左转90° → 直行寻线
@@ -27,58 +28,35 @@ typedef enum
 static AvoidStageV2 g_avoid2Stage = AVOID2_IDLE;
 static int32_t g_segmentStartPulses = 0; /* 阶段起点脉冲快照，不动累计值 */
 
-extern int16_t dist;
-extern int is_lost;
-extern float yaw;
-extern float origin_yaw;
-extern PID_t anglePID;
-
-extern void PID_control(void);
-
-/* 计算两个角度之间的最短差值，归一化到 [-180, 180] */
-static float angle_diff(float a, float b)
-{
-    float d = a - b;
-    while (d > 180.0f)
-        d -= 360.0f;
-    while (d < -180.0f)
-        d += 360.0f;
-    return d;
-}
-
 /*
  * 避障状态机 v2 (右避障) — 编码器测距 + MPU6050 转角，不依赖延时
- *
- * 轨迹: 障碍物在线上右侧，车右转 45° 斜出 → 直行绕过 →
- *       左转 90° 回到与线平行的方向 → 直行寻线归位。
- * 每阶段用编码器脉冲差值计距，TurnToAngle 非阻塞转角度。
  */
-void ObstacleAvoidance_Task_v2(void)
+void ObstacleAvoidance_Task_v2(RobotState *rs)
 {
     switch (g_avoid2Stage)
     {
     case AVOID2_IDLE:
-        if (dist > 0 && dist < AVOID_OBSTACLE_CM)
+        if (rs->dist > 0 && rs->dist < AVOID_OBSTACLE_CM)
         {
             g_avoid2Stage = AVOID2_STOP;
         }
         else
         {
-            PID_control();
+            PID_control(rs);
         }
         break;
 
     case AVOID2_STOP:
-        Set_PWM(0, 0); /* 停车快照，一帧后立即进入右转，避免惯性冲过 */
-        origin_yaw = yaw;
+        Set_PWM(0, 0);
+        rs->originYaw = rs->yaw;
         g_segmentStartPulses = Encoder_GetDistancePulses();
         g_avoid2Stage = AVOID2_TURN_RIGHT;
         break;
 
     case AVOID2_TURN_RIGHT:
     {
-        float target = origin_yaw + AVOID_TURN_DEG;
-        float diff = angle_diff(target, yaw);
+        float target = rs->originYaw + AVOID_TURN_DEG;
+        float diff = Angle_Normalize(target - rs->yaw);
         if (diff < AVOID_CONVERGE_THRESH && diff > -AVOID_CONVERGE_THRESH)
         {
             g_segmentStartPulses = Encoder_GetDistancePulses();
@@ -86,7 +64,7 @@ void ObstacleAvoidance_Task_v2(void)
         }
         else
         {
-            TurnToAngle(target);
+            TurnToAngle(rs, target);
         }
         break;
     }
@@ -95,19 +73,19 @@ void ObstacleAvoidance_Task_v2(void)
         if (Encoder_GetDistancePulses() - g_segmentStartPulses > AVOID_DIST_PULSES)
         {
             Set_PWM(0, 0);
-            PID_Reset(&anglePID); /* 清空直行积累的角度积分，避免阻碍后续转向 */
+            PID_Reset(&rs->anglePID);
             g_avoid2Stage = AVOID2_TURN_LEFT;
         }
         else
         {
-            PID_control_head(AVOID_SPEED, origin_yaw + AVOID_TURN_DEG);
+            PID_control_head(rs, AVOID_SPEED, rs->originYaw + AVOID_TURN_DEG);
         }
         break;
 
     case AVOID2_TURN_LEFT:
     {
-        float target = origin_yaw - AVOID_RETURN_DEG;
-        float diff = angle_diff(target, yaw);
+        float target = rs->originYaw - AVOID_RETURN_DEG;
+        float diff = Angle_Normalize(target - rs->yaw);
         if (diff < AVOID_CONVERGE_THRESH && diff > -AVOID_CONVERGE_THRESH)
         {
             g_segmentStartPulses = Encoder_GetDistancePulses();
@@ -115,13 +93,13 @@ void ObstacleAvoidance_Task_v2(void)
         }
         else
         {
-            TurnToAngle(target);
+            TurnToAngle(rs, target);
         }
         break;
     }
 
     case AVOID2_SEEK_LINE:
-        if (is_lost == 0)
+        if (rs->isLost == 0)
         {
             g_avoid2Stage = AVOID2_IDLE;
         }
@@ -131,7 +109,7 @@ void ObstacleAvoidance_Task_v2(void)
         }
         else
         {
-            PID_control_head(AVOID_SPEED, origin_yaw - AVOID_RETURN_DEG);
+            PID_control_head(rs, AVOID_SPEED, rs->originYaw - AVOID_RETURN_DEG);
         }
         break;
     }
@@ -172,15 +150,13 @@ static int g_cornerTurnDir = 0; /* 1=右转, -1=左转 */
 static int g_cornerDetectDebounce = 0;
 uint8_t g_cornerTurnsCompleted = 0; /* 已完成转角次数 (TURN1+TURN2)，4次=1圈 */
 
-extern uint8_t g_running;
-
-void CornerTurn_Task_v2(void)
+void CornerTurn_Task_v2(RobotState *rs)
 {
     /* 直角检测: 一侧4灯全黑 */
-    int left_black = (Sensor_GetState(0) == 0 && Sensor_GetState(1) == 0 &&
-                      Sensor_GetState(2) == 0 && Sensor_GetState(3) == 0);
-    int right_black = (Sensor_GetState(4) == 0 && Sensor_GetState(5) == 0 &&
-                       Sensor_GetState(6) == 0 && Sensor_GetState(7) == 0);
+    int left_black = (Sensor_GetStateCached(0) == 0 && Sensor_GetStateCached(1) == 0 &&
+                      Sensor_GetStateCached(2) == 0 && Sensor_GetStateCached(3) == 0);
+    int right_black = (Sensor_GetStateCached(4) == 0 && Sensor_GetStateCached(5) == 0 &&
+                       Sensor_GetStateCached(6) == 0 && Sensor_GetStateCached(7) == 0);
 
     switch (g_corner2Stage)
     {
@@ -191,13 +167,12 @@ void CornerTurn_Task_v2(void)
             if (g_cornerDetectDebounce >= CORNER_DETECT_DEBOUNCE)
             {
                 g_cornerDetectDebounce = 0;
-                /* 左全黑→左直角→左转+137; 右全黑→右直角→右转-137 */
                 if (left_black)
-                    g_cornerTurnDir = 1; /* +137° (MPU6050: CCW为正) */
+                    g_cornerTurnDir = 1;
                 else
-                    g_cornerTurnDir = -1; /* -137° */
+                    g_cornerTurnDir = -1;
 
-                origin_yaw = yaw;
+                rs->originYaw = rs->yaw;
                 g_cornerSegStartPulses = Encoder_GetDistancePulses();
                 g_corner2Stage = CORNER2_ADVANCE;
             }
@@ -205,27 +180,26 @@ void CornerTurn_Task_v2(void)
         else
         {
             g_cornerDetectDebounce = 0;
-            PID_control();
+            PID_control(rs);
         }
         break;
 
     case CORNER2_ADVANCE:
-        /* 传感器物理位置在旋转中心前方，需前移让旋转中心对准拐角顶点再原地转 */
         if (Encoder_GetDistancePulses() - g_cornerSegStartPulses > CORNER_ADVANCE_PULSES)
         {
-            PID_Reset(&anglePID); /* 清空直行角度积分，为原地大角度转向准备干净的控制器 */
+            PID_Reset(&rs->anglePID);
             g_corner2Stage = CORNER2_TURN1;
         }
         else
         {
-            PID_control_head(CORNER_STRAIGHT_SPEED, origin_yaw);
+            PID_control_head(rs, CORNER_STRAIGHT_SPEED, rs->originYaw);
         }
         break;
 
     case CORNER2_TURN1:
     {
-        float target = origin_yaw + g_cornerTurnDir * CORNER_TURN_DEG;
-        float diff = angle_diff(target, yaw);
+        float target = rs->originYaw + g_cornerTurnDir * CORNER_TURN_DEG;
+        float diff = Angle_Normalize(target - rs->yaw);
         if (diff < CORNER_CONVERGE_THRESH && diff > -CORNER_CONVERGE_THRESH)
         {
             g_cornerTurnsCompleted++;
@@ -234,47 +208,45 @@ void CornerTurn_Task_v2(void)
         }
         else
         {
-            TurnToAngle(target);
+            TurnToAngle(rs, target);
         }
         break;
     }
 
     case CORNER2_STRAIGHT:
     {
-        /* S3和S4是中间两个传感器，同时见线说明车已到达对边线段上 */
-        int mid_black = (Sensor_GetState(3) == 0 && Sensor_GetState(4) == 0);
+        int mid_black = (Sensor_GetStateCached(3) == 0 && Sensor_GetStateCached(4) == 0);
         int dist_reached = (Encoder_GetDistancePulses() - g_cornerSegStartPulses > CORNER_STRAIGHT_PULSES);
-        if (mid_black || dist_reached) /* 见线即停 或 编码器超距保护 */
+        if (mid_black || dist_reached)
         {
             g_cornerSegStartPulses = Encoder_GetDistancePulses();
             g_corner2Stage = CORNER2_ADVANCE2;
         }
         else
         {
-            PID_control_head(CORNER_STRAIGHT_SPEED, origin_yaw + g_cornerTurnDir * CORNER_TURN_DEG);
+            PID_control_head(rs, CORNER_STRAIGHT_SPEED,
+                             rs->originYaw + g_cornerTurnDir * CORNER_TURN_DEG);
         }
         break;
     }
 
     case CORNER2_ADVANCE2:
-        /* 传感器见线时旋转中心尚未到达线段，前移对齐后再转回原始航向 */
         if (Encoder_GetDistancePulses() - g_cornerSegStartPulses > CORNER_RETURN_ADVANCE_PULSES)
         {
-            PID_Reset(&anglePID); /* 清空直行积分，为转回 origin_yaw 准备 */
+            PID_Reset(&rs->anglePID);
             g_corner2Stage = CORNER2_TURN2;
         }
         else
         {
-            PID_control_head(CORNER_STRAIGHT_SPEED,
-                             origin_yaw + g_cornerTurnDir * CORNER_TURN_DEG);
+            PID_control_head(rs, CORNER_STRAIGHT_SPEED,
+                             rs->originYaw + g_cornerTurnDir * CORNER_TURN_DEG);
         }
         break;
 
     case CORNER2_TURN2:
     {
-        /* 转回原始航向：正方形对边互相平行，回到 origin_yaw 即可沿下一段继续循线 */
-        float target = origin_yaw;
-        float diff = angle_diff(target, yaw);
+        float target = rs->originYaw;
+        float diff = Angle_Normalize(target - rs->yaw);
         if (diff < CORNER_CONVERGE_THRESH && diff > -CORNER_CONVERGE_THRESH)
         {
             g_cornerTurnsCompleted++;
@@ -282,7 +254,7 @@ void CornerTurn_Task_v2(void)
         }
         else
         {
-            TurnToAngle(target);
+            TurnToAngle(rs, target);
         }
         break;
     }

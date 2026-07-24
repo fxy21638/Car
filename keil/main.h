@@ -12,11 +12,12 @@
 #include "Motor.h"
 #include "MPU6050_MSPM0.h"
 #include "OLED.h"
-#include "PID.h"
+#include "Control/PID.h"
 #include "Sensor.h"
-#include "task.h"
-#include "task_v2.h"
+#include "Control/task.h"
+#include "Control/task_v2.h"
 #include "Uart.h"
 #include "Ultrasonic.h"
+#include "robot.h"
 
 #endif

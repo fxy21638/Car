@@ -24,7 +24,7 @@
 static volatile uint32_t s_echoUs   = 0;   /* 当前回波脉宽 (us) */
 static volatile uint32_t s_waitUs   = 0;   /* 等待 Echo 拉高的累积时间 */
 static volatile uint8_t  s_busy     = 0;   /* 1=正在测量中 */
-volatile int16_t s_distCm = -1;            /* 最近一次有效距离 (cm) */
+static volatile int16_t s_distCm = -1;     /* 最近一次有效距离 (cm) */
 
 /* ---- 50us 定时器 ISR --------------------------------------------------
  * TIMER_US 配置为 Periodic 模式，每 50us 触发一次 Zero 中断。

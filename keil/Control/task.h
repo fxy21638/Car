@@ -14,10 +14,13 @@ extern "C"
 {
 #endif
 
-    void ObstacleAvoidance_Task(unsigned long nowMs);
-    void turn_Task(void);
+    #include "robot.h"
+    void ObstacleAvoidance_Task(RobotState *rs, unsigned long nowMs);
+    void turn_Task(RobotState *rs);
     void turn_Task_Reset(void);
-    void diagonal_Task(void);
+    void turn_Task_v2(RobotState *rs);
+    void turn_Task_v2_Reset(void);
+    void diagonal_Task(RobotState *rs);
     void diagonal_Task_Reset(void);
 
 #ifdef __cplusplus

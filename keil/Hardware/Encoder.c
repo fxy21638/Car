@@ -1,49 +1,38 @@
+#include "ti_msp_dl_config.h"
 #include "Encoder.h"
 #include "Uart.h"
 #include "Delay.h"
 
-// 全局变量（与官方例程格式一致）
-volatile int32_t Get_Encoder_countA = 0; // 左轮实时计数
-volatile int32_t Get_Encoder_countB = 0; // 右轮实时计数
-volatile int32_t encoderA_cnt = 0;       // 10ms 速度值
-volatile int32_t encoderB_cnt = 0;
-volatile uint8_t g_mpu6050_flag = 0;    /* TIMA0 ISR 置1，主循环检测并清零 */
+static int s_leftEncSpeed  = 0;
+static int s_rightEncSpeed = 0;
 
-/* 累计脉冲（不清零），用于 Get_Current_Circles() 圈数计算。
- * Get_Encoder_countA/B 每 10ms 被 TIMA0 ISR 清零，不能用于累计距离。 */
+int Encoder_GetLeftSpeed(void)  { return s_leftEncSpeed; }
+int Encoder_GetRightSpeed(void) { return s_rightEncSpeed; }
+
 static volatile int32_t s_totalCountA = 0;
 static volatile int32_t s_totalCountB = 0;
-
-extern int leftEncSpeed; // 给主程序PID用
-extern int rightEncSpeed;
-
 static uint32_t s_pulsesPerCircle = 13000;
+volatile uint8_t g_mpu6050_flag = 0;
 
-// 编码器初始化
 void Encoder_Init(void)
 {
-    Get_Encoder_countA = 0;
-    Get_Encoder_countB = 0;
-    encoderA_cnt = 0;
-    encoderB_cnt = 0;
-    s_totalCountA = 0;
-    s_totalCountB = 0;
-    leftEncSpeed = 0;
-    rightEncSpeed = 0;
+    s_totalCountA   = 0;
+    s_totalCountB   = 0;
+    s_leftEncSpeed  = 0;
+    s_rightEncSpeed = 0;
+    g_mpu6050_flag  = 0;
 
     DL_GPIO_enableInterrupt(GPIOA,
-                            ENCODERA_E1A_PIN | ENCODERA_E1B_PIN |
-                                ENCODERB_E2A_PIN | ENCODERB_E2B_PIN);
+        ENCODERA_E1A_PIN | ENCODERA_E1B_PIN |
+            ENCODERB_E2A_PIN | ENCODERB_E2B_PIN);
 }
 
 void Encoder_ResetDistance(void)
 {
-    Get_Encoder_countA = 0;
-    Get_Encoder_countB = 0;
-    s_totalCountA = 0;
-    s_totalCountB = 0;
-    leftEncSpeed = 0;
-    rightEncSpeed = 0;
+    s_totalCountA   = 0;
+    s_totalCountB   = 0;
+    s_leftEncSpeed  = 0;
+    s_rightEncSpeed = 0;
 }
 
 float Get_Current_Circles(void)
@@ -54,98 +43,7 @@ float Get_Current_Circles(void)
 
 int32_t Encoder_GetDistancePulses(void)
 {
-    return (int32_t)((s_totalCountA + (int32_t)(-s_totalCountB)) / 2);
-}
-
-/* ---- 速度采样 ISR (10ms 周期) ----
- * 读取编码器正交计数 → 差分速度 → 供 PID_control 速度环使用。
- * 右轮取反 (encoderB_cnt = -Get_Encoder_countB) 保证前进时为正。 */
-void TIMA0_IRQHandler(void)
-{
-    if (DL_TimerA_getPendingInterrupt(TIMER_0_INST) == DL_TIMER_IIDX_ZERO)
-    {
-        encoderA_cnt = Get_Encoder_countA;
-        encoderB_cnt = -Get_Encoder_countB;
-
-        leftEncSpeed = encoderA_cnt * 4;   /* 脉冲×4 → 速度 (10ms周期) */
-        rightEncSpeed = encoderB_cnt * 4;
-
-        Get_Encoder_countA = 0;
-        Get_Encoder_countB = 0;
-
-        g_mpu6050_flag = 1; /* 通知主循环更新MPU6050 */
-    }
-
-    DL_TimerA_clearInterruptStatus(TIMER_0_INST, DL_TIMER_INTERRUPT_ZERO_EVENT);
-}
-
-// GPIOA 组中断处理（编码器正交信号）
-void GROUP1_IRQHandler(void)
-{
-    uint32_t gpio_interrupt = DL_GPIO_getEnabledInterruptStatus(GPIOA,
-                                                                ENCODERA_E1A_PIN | ENCODERA_E1B_PIN |
-                                                                    ENCODERB_E2A_PIN | ENCODERB_E2B_PIN);
-
-    // ================== 左编码器 A ==================
-    /* 注意：同一轮的 A/B 相位可能在一次 ISR 前后都产生中断并同时置位。
-     * 这里不能用 else if，否则会漏处理其中一路。
-     */
-    if ((gpio_interrupt & ENCODERA_E1A_PIN) == ENCODERA_E1A_PIN)
-    {
-        if (!DL_GPIO_readPins(GPIOA, ENCODERA_E1B_PIN))
-        {
-            Get_Encoder_countA--;
-            s_totalCountA--;
-        }
-        else
-        {
-            Get_Encoder_countA++;
-            s_totalCountA++;
-        }
-    }
-    if ((gpio_interrupt & ENCODERA_E1B_PIN) == ENCODERA_E1B_PIN)
-    {
-        if (!DL_GPIO_readPins(GPIOA, ENCODERA_E1A_PIN))
-        {
-            Get_Encoder_countA++;
-            s_totalCountA++;
-        }
-        else
-        {
-            Get_Encoder_countA--;
-            s_totalCountA--;
-        }
-    }
-
-    // ================== 右编码器 B ==================
-    if ((gpio_interrupt & ENCODERB_E2A_PIN) == ENCODERB_E2A_PIN)
-    {
-        if (!DL_GPIO_readPins(GPIOA, ENCODERB_E2B_PIN))
-        {
-            Get_Encoder_countB--;
-            s_totalCountB--;
-        }
-        else
-        {
-            Get_Encoder_countB++;
-            s_totalCountB++;
-        }
-    }
-    if ((gpio_interrupt & ENCODERB_E2B_PIN) == ENCODERB_E2B_PIN)
-    {
-        if (!DL_GPIO_readPins(GPIOA, ENCODERB_E2A_PIN))
-        {
-            Get_Encoder_countB++;
-            s_totalCountB++;
-        }
-        else
-        {
-            Get_Encoder_countB--;
-            s_totalCountB--;
-        }
-    }
-
-    DL_GPIO_clearInterruptStatus(GPIOA, gpio_interrupt);
+    return (int32_t)((s_totalCountA - s_totalCountB) / 2);
 }
 
 void Encoder_SetPulsesPerCircle(uint32_t pulses)
@@ -153,28 +51,67 @@ void Encoder_SetPulsesPerCircle(uint32_t pulses)
     s_pulsesPerCircle = pulses;
 }
 
-/* 编码器调试打印：每 200ms 通过串口输出编码器值，用于排查编码器硬件是否正常 */
+/* ---- 编码器正交解码 ISR (上升沿触发) ----
+ * 参照 TI 驱动库原始实现，稳定可靠。
+ * 每个 A/B 相上升沿读另一相电平判断方向。 */
+void GROUP1_IRQHandler(void)
+{
+    uint32_t stat = DL_GPIO_getEnabledInterruptStatus(GPIOA,
+        ENCODERA_E1A_PIN | ENCODERA_E1B_PIN |
+            ENCODERB_E2A_PIN | ENCODERB_E2B_PIN);
+
+    /* 左轮 Encoder A: E1A=PA15, E1B=PA16 */
+    if (stat & ENCODERA_E1A_PIN) {
+        if (!DL_GPIO_readPins(GPIOA, ENCODERA_E1B_PIN)) { s_totalCountA--; }
+        else                                             { s_totalCountA++; }
+    }
+    if (stat & ENCODERA_E1B_PIN) {
+        if (!DL_GPIO_readPins(GPIOA, ENCODERA_E1A_PIN)) { s_totalCountA++; }
+        else                                             { s_totalCountA--; }
+    }
+
+    /* 右轮 Encoder B: E2A=PA13, E2B=PA12 */
+    if (stat & ENCODERB_E2A_PIN) {
+        if (!DL_GPIO_readPins(GPIOA, ENCODERB_E2B_PIN)) { s_totalCountB--; }
+        else                                             { s_totalCountB++; }
+    }
+    if (stat & ENCODERB_E2B_PIN) {
+        if (!DL_GPIO_readPins(GPIOA, ENCODERB_E2A_PIN)) { s_totalCountB++; }
+        else                                             { s_totalCountB--; }
+    }
+
+    DL_GPIO_clearInterruptStatus(GPIOA, stat);
+}
+
+void TIMA0_IRQHandler(void)
+{
+    if (DL_TimerA_getPendingInterrupt(TIMER_0_INST) == DL_TIMER_IIDX_ZERO)
+    {
+        static int32_t s_lastA = 0, s_lastB = 0;
+        int32_t curA = s_totalCountA;
+        int32_t curB = s_totalCountB;
+
+        s_leftEncSpeed  = (curA - s_lastA)  *4;
+        s_rightEncSpeed = -(curB - s_lastB) *4;
+        s_lastA = curA;
+        s_lastB = curB;
+
+        g_mpu6050_flag = 1;
+    }
+    DL_TimerA_clearInterruptStatus(TIMER_0_INST, DL_TIMER_INTERRUPT_ZERO_EVENT);
+}
+
 void Encoder_DebugPrint(void)
 {
     static unsigned long lastPrintMs = 0;
     unsigned long nowMs = tick_ms;
-
-    if ((nowMs - lastPrintMs) < 200UL && lastPrintMs != 0)
-        return;
+    if ((nowMs - lastPrintMs) < 200UL && lastPrintMs != 0) return;
     lastPrintMs = nowMs;
 
-    /* 累计脉冲 (前进+，后退-) */
-    Uart_SendString("LA:");
-    Uart_SendInt((int)s_totalCountA);
-    Uart_SendString(" LB:");
-    Uart_SendInt((int)s_totalCountB);
-    /* 10ms速度值 */
-    Uart_SendString(" SA:");
-    Uart_SendInt((int)encoderA_cnt);
-    Uart_SendString(" SB:");
-    Uart_SendInt((int)encoderB_cnt);
-    /* 距离脉冲 */
-    Uart_SendString(" D:");
-    Uart_SendInt((int)Encoder_GetDistancePulses());
+    Uart_SendString("LA:");  Uart_SendInt((int)s_totalCountA);
+    Uart_SendString(" LB:"); Uart_SendInt((int)s_totalCountB);
+    Uart_SendString(" SA:"); Uart_SendInt(s_leftEncSpeed);
+    Uart_SendString(" SB:"); Uart_SendInt(s_rightEncSpeed);
+    Uart_SendString(" D:");  Uart_SendInt((int)Encoder_GetDistancePulses());
     Uart_SendString("\r\n");
 }

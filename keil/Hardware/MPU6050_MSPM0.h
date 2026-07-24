@@ -3,24 +3,12 @@
 
 #include "ti_msp_dl_config.h"
 #include "Delay.h"
-#include <stdbool.h>
-#include <stdint.h>
+#include "robot.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-    typedef struct
-    {
-        float gyroZBias_dps;        /* 零偏 (°/s)，运行中自适应更新 */
-        float yaw_deg;              /* 累计航向角 (°) */
-        float gyroZFilt_dps;        /* 低通滤波后的陀螺仪 Z 轴角速度 */
-
-        uint32_t lastUpdateMs;
-        uint16_t samplePeriodMs;
-        int16_t prevRawGyroZ;       /* 上一帧原始陀螺仪 Z 值，用于尖峰检测 */
-    } MPU6050_Handle;
-
     /* 自适应零偏跟踪参数（移植自 ICM-42686 方案） */
     #define MPU6050_GYRO_Z_DEADBAND_DPS      (0.15f) /* 死区：低于此值视为噪声，不积分 */
     #define MPU6050_GYRO_Z_BIAS_TRACK_DPS    (0.80f) /* 偏置跟踪阈值：低于此值认为"不在转向"，更新零偏 */
@@ -57,8 +45,7 @@ extern "C"
         dev->yaw_deg = 0.0f;
     }
 
-    /* 单元测试：原地转向 +90°/-90° 循环，OLED 显示目标/当前/误差 */
-    void Test_MPU6050_TurnToAngle(void);
+    void Test_MPU6050_TurnToAngle(RobotState *rs);
 
 #ifdef __cplusplus
 }

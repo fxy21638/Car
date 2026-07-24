@@ -2,17 +2,17 @@
 
 void LED_ON(void)
 {
-	DL_GPIO_clearPins(LEDB_PORT,LEDB_PIN_22_PIN);
+	DL_GPIO_clearPins(LEDB_PORT,LEDB_LED_PIN);
 }
 
 void LED_OFF(void)
 {
-	DL_GPIO_setPins(LEDB_PORT,LEDB_PIN_22_PIN);
+	DL_GPIO_setPins(LEDB_PORT,LEDB_LED_PIN);
 }
 
 void LED_Toggle(void)
 {
-	DL_GPIO_togglePins(LEDB_PORT,LEDB_PIN_22_PIN);
+	DL_GPIO_togglePins(LEDB_PORT,LEDB_LED_PIN);
 }
 
 void LED_Flash(uint16_t time)

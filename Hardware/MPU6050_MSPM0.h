@@ -1,22 +1,12 @@
 #ifndef MPU6050_MSPM0_H
 #define MPU6050_MSPM0_H
 
-#include <stdbool.h>
-#include <stdint.h>
+#include "robot.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-    typedef struct
-    {
-        float gyroZBias_dps;
-        float yaw_deg;
-
-        uint32_t lastUpdateMs;
-        uint16_t samplePeriodMs;
-    } MPU6050_Handle;
 
     /* Initializes GPIO-based (bit-banged) I2C on the configured pins and configures MPU6050 registers.
      * Returns false if WHO_AM_I check fails.

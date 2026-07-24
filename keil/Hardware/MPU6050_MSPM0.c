@@ -3,11 +3,10 @@
 #include "Motor.h"
 #include "PID.h"
 
-/* 供测试函数使用的外部变量 */
-extern uint8_t gMPU6050_OK;
-extern float yaw;
+#include "robot.h"
+
+/* tick_ms 来自 SysTick，测试函数需要 */
 extern volatile unsigned long tick_ms;
-extern MPU6050_Handle gImu;
 
 /* ---------------- MPU6050 registers ---------------- */
 #define MPU6050_ADDR_7BIT (0x68u)
@@ -425,29 +424,27 @@ bool MPU6050_UpdateYaw(MPU6050_Handle *dev, uint32_t nowMs)
  *       OLED 显示 目标(Tgt) / 当前(Yaw) / 误差(Err)。
  *       到位判定：|Err| < 5 度。
  * ================================================================ */
-void Test_MPU6050_TurnToAngle(void)
+void Test_MPU6050_TurnToAngle(RobotState *rs)
 {
     static int16_t target = 90;
     float err;
 
-    MPU6050_UpdateYaw(&gImu, tick_ms);
-    yaw = MPU6050_GetYawDeg(&gImu);
+    MPU6050_UpdateYaw(&rs->imu, tick_ms);
+    rs->yaw = MPU6050_GetYawDeg(&rs->imu);
 
-    err = (float)target - yaw;
-    while (err > 180.0f)  err -= 360.0f;
-    while (err < -180.0f) err += 360.0f;
+    err = Angle_Normalize((float)target - rs->yaw);
 
     if (err < 5.0f && err > -5.0f)
         target = -target;
 
-    if (gMPU6050_OK)
-        TurnToAngle((float)target);
+    if (rs->imuOk)
+        TurnToAngle(rs, (float)target);
     else
         Set_PWM(0, 0);
 
     if (!OLED_IsBusy())
     {
-        int16_t y = (int16_t)yaw;
+        int16_t y = (int16_t)rs->yaw;
         int16_t e = (int16_t)err;
         OLED_Clear();
         OLED_ShowString(0, 0, "== TURN TEST ==", OLED_8X16);

@@ -1,8 +1,6 @@
 #include "Uart.h"
 
-extern int PWMleft, PWMright;
-extern int targetLeftSpeed, targetRightSpeed;
-extern int leftEncSpeed, rightEncSpeed;
+#include "Encoder.h"
 
 /* ---- 轮询 TX 环形缓冲区 ----
  * 不依赖中断。Uart_PollTx() 在主循环中被高频调用，
@@ -85,7 +83,7 @@ void Uart_SendInt(int num)
 
 /* VOFA+ FireWater 协议：每 50ms 发送一帧速度环数据（20Hz）。
  * 帧格式: TgtL,ActL,TgtR,ActR,PWML,PWMR\r\n */
-void VOFA_SendSpeedLoop(void)
+void VOFA_SendSpeedLoop(RobotState *rs)
 {
     static unsigned long lastSendMs = 0;
     unsigned long nowMs = tick_ms;
@@ -94,18 +92,17 @@ void VOFA_SendSpeedLoop(void)
         return;
     lastSendMs = nowMs;
 
-    /* 手工逐字段发送，避免 snprintf 标准库依赖 */
-    Uart_SendInt(targetLeftSpeed);
+    Uart_SendInt(rs->targetLeftSpeed);
     Uart_SendByte(',');
-    Uart_SendInt(leftEncSpeed);
+    Uart_SendInt(Encoder_GetLeftSpeed());
     Uart_SendByte(',');
-    Uart_SendInt(targetRightSpeed);
+    Uart_SendInt(rs->targetRightSpeed);
     Uart_SendByte(',');
-    Uart_SendInt(rightEncSpeed);
+    Uart_SendInt(Encoder_GetRightSpeed());
     Uart_SendByte(',');
-    Uart_SendInt(PWMleft);
+    Uart_SendInt(rs->pwmLeft);
     Uart_SendByte(',');
-    Uart_SendInt(PWMright);
+    Uart_SendInt(rs->pwmRight);
     Uart_SendString("\r\n");
 }
 

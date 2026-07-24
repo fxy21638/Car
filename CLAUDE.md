@@ -13,43 +13,48 @@ car_02/
   empty.c                  # 主入口，超级循环+菜单状态机
   empty.syscfg             # SysConfig 项目文件（引脚/外设配置的唯一来源）
   ti_msp_dl_config.c/.h    # SysConfig 自动生成的初始化代码
+  robot.h                  # RobotState 上下文结构体 + PID_t/MPU6050_Handle 类型
 
-  Hardware/                # 基础驱动模块（跨构建共享）
+  Hardware/                # 硬件驱动模块（跨构建共享）
     Motor.c/h              #   PWM 电机驱动 (TIMG12, -100~+100)
     Sensor.c/h             #   8路红外循线传感器 (加权位置 -79~+79)
-    Encoder.c/h            #   编码器速度测量 (TIMA0 10ms采样)，支持可配置圈距
+    Encoder.c/h            #   编码器四倍频计数 (GPIO中断, TIMA0 10ms速度采样)
     MPU6050_MSPM0.c/h      #   MPU6050 陀螺仪 (软件I2C, Z轴偏航积分)
     Ultrasonic.c/h         #   HC-SR04 超声波 (50us ISR, 非阻塞)
     OLED.c/h               #   SSD1306 OLED 128x64 (软件I2C, 帧缓冲)
     OLED_Data.c/h          #   OLED 字库和图像数据
-    PID.c/h                #   通用PID算法 (PID_Init/Update/Reset)
     Key.c/h                #   4键按钮 (软件去抖)
     LED.c/h                #   板载LED
     Delay.c/h              #   SysTick 毫秒定时
     Uart.c/h               #   UART0 调试输出 (115200)
 
+  Control/                 # 纯算法/控制模块（跨构建共享）
+    PID.c/h                #   通用PID算法 (Init/Update/Reset)
+
   keil/                    # [主构建] Keil MDK (ARMCLANG V6.21)
-    Hardware/              #   扩展/覆盖模块 — 构建时优先链接此目录
-      task.c/h             #     任务层: 避障状态机(v1), 对角线导航状态机
-      task_v2.c/h         #     避障状态机 v2 (编码器+MPU6050)
-      PID.c                #     完整PID: PID_control, TurnToAngle, Angle_Control 等
+    Hardware/              #   硬件驱动 — 构建时优先链接此目录
       Encoder.c/h          #     编码器 (与根 Hardware/ 同步维护)
       ...                  #     其余文件与根 Hardware/ 同名，部分有差异
+    Control/               #   控制算法 — 构建时优先链接此目录
+      PID.c/h              #     完整PID: PID_control, TurnToAngle, Angle_Control 等
+      task.c/h             #     任务层 v1: 避障状态机, 对角线导航
+      task_v2.c/h          #     任务层 v2: 避障+对角导航 (编码器+MPU6050)
     empty_LP_MSPM0G3507_nortos_keil.uvprojx
 
   gcc/                     # GCC (arm-none-eabi-gcc) 构建
   iar/                     # IAR (iccarm) 构建
   ticlang/                 # TI Clang (tiarmclang) 构建
   empty_LP_MSPM0G3507_nortos_ticlang/  # CCS/Theia 构建目录
-  ultrasonic-gpio-oled-hardware-i2c/   # 独立子项目 (超声波OLED显示)
 ```
 
-### 关键：双份 Hardware/ 的维护规则
+### 关键：双份目录的维护规则
 
-- **`keil/Hardware/` 是主构建实际链接的版本**。修改驱动逻辑时必须同时更新此目录。
-- **根 `Hardware/` 保留给其他构建 (GCC/IAR/TIClang)**，其中 PID.c 仅含基础 Init/Update/Reset，无控制函数。
-- 当文件在两个目录中同名存在时，以 `keil/Hardware/` 为权威版本。
-- 新增函数需要同时在两处声明/定义（如 `Encoder_SetPulsesPerCircle` 已在两处 Encoder.c/h 同步）。
+- **`keil/Hardware/`** 和 **`keil/Control/`** 是主构建实际链接的版本。修改驱动/控制逻辑时必须同时更新根目录对应文件。
+- **根 `Hardware/`** 和 **根 `Control/`** 保留给其他构建 (GCC/IAR/TIClang)。
+  - 根 `Control/PID.c` 仅含基础 Init/Update/Reset，无控制函数。
+  - `keil/Control/PID.c` 含完整 PID 控制函数 (PID_control, TurnToAngle 等)。
+- 当文件在两个目录中同名存在时，以 `keil/` 下为权威版本。
+- 新增函数需要同时在两处声明/定义。
 
 ## 架构
 

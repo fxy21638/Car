@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>__MSPM0G3507__</Define>
               <Undefine></Undefine>
-              <IncludePath>..;..\..\..\..\..\..\..\mspm0_sdk_2_05_01_00\source\third_party\CMSIS\Core\Include;..\..\..\..\..\..\..\mspm0_sdk_2_05_01_00\source;.\Hardware;..\..\car_02</IncludePath>
+              <IncludePath>..;..\..\..\..\..\..\..\mspm0_sdk_2_05_01_00\source\third_party\CMSIS\Core\Include;..\..\..\..\..\..\..\mspm0_sdk_2_05_01_00\source;.\Hardware;..\..\car_02;.\Control</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -420,14 +420,14 @@
           <GroupName>Hardware</GroupName>
           <Files>
             <File>
+              <FileName>LED.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Hardware\LED.c</FilePath>
+            </File>
+            <File>
               <FileName>Key.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Hardware\Key.c</FilePath>
-            </File>
-            <File>
-              <FileName>Key.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Hardware\Key.h</FilePath>
             </File>
             <File>
               <FileName>Motor.c</FileName>
@@ -435,9 +435,9 @@
               <FilePath>.\Hardware\Motor.c</FilePath>
             </File>
             <File>
-              <FileName>Motor.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Hardware\Motor.h</FilePath>
+              <FileName>Encoder.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Hardware\Encoder.c</FilePath>
             </File>
             <File>
               <FileName>Sensor.c</FileName>
@@ -445,39 +445,9 @@
               <FilePath>.\Hardware\Sensor.c</FilePath>
             </File>
             <File>
-              <FileName>Sensor.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Hardware\Sensor.h</FilePath>
-            </File>
-            <File>
-              <FileName>OLED.c</FileName>
+              <FileName>Uart.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Hardware\OLED.c</FilePath>
-            </File>
-            <File>
-              <FileName>OLED.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Hardware\OLED.h</FilePath>
-            </File>
-            <File>
-              <FileName>OLED_Data.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Hardware\OLED_Data.c</FilePath>
-            </File>
-            <File>
-              <FileName>OLED_Data.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Hardware\OLED_Data.h</FilePath>
-            </File>
-            <File>
-              <FileName>Encoder.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Hardware\Encoder.c</FilePath>
-            </File>
-            <File>
-              <FileName>Encoder.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Hardware\Encoder.h</FilePath>
+              <FilePath>.\Hardware\Uart.c</FilePath>
             </File>
             <File>
               <FileName>MPU6050_MSPM0.c</FileName>
@@ -485,29 +455,14 @@
               <FilePath>.\Hardware\MPU6050_MSPM0.c</FilePath>
             </File>
             <File>
-              <FileName>MPU6050_MSPM0.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Hardware\MPU6050_MSPM0.h</FilePath>
-            </File>
-            <File>
-              <FileName>Ultrasonic.c</FileName>
+              <FileName>OLED.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Hardware\Ultrasonic.c</FilePath>
+              <FilePath>.\Hardware\OLED.c</FilePath>
             </File>
             <File>
-              <FileName>Ultrasonic.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Hardware\Ultrasonic.h</FilePath>
-            </File>
-            <File>
-              <FileName>PID.c</FileName>
+              <FileName>OLED_Data.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Hardware\PID.c</FilePath>
-            </File>
-            <File>
-              <FileName>PID.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Hardware\PID.h</FilePath>
+              <FilePath>.\Hardware\OLED_Data.c</FilePath>
             </File>
             <File>
               <FileName>Delay.c</FileName>
@@ -515,39 +470,29 @@
               <FilePath>.\Hardware\Delay.c</FilePath>
             </File>
             <File>
-              <FileName>Delay.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Hardware\Delay.h</FilePath>
-            </File>
-            <File>
-              <FileName>Uart.c</FileName>
+              <FileName>Ultrasonic.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Hardware\Uart.c</FilePath>
+              <FilePath>.\Hardware\Ultrasonic.c</FilePath>
             </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Control</GroupName>
+          <Files>
             <File>
-              <FileName>Uart.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Hardware\Uart.h</FilePath>
+              <FileName>PID.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Control\PID.c</FilePath>
             </File>
             <File>
               <FileName>task.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Hardware\task.c</FilePath>
-            </File>
-            <File>
-              <FileName>task.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Hardware\task.h</FilePath>
+              <FilePath>.\Control\task.c</FilePath>
             </File>
             <File>
               <FileName>task_v2.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Hardware\task_v2.c</FilePath>
-            </File>
-            <File>
-              <FileName>task_v2.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Hardware\task_v2.h</FilePath>
+              <FilePath>.\Control\task_v2.c</FilePath>
             </File>
           </Files>
         </Group>
