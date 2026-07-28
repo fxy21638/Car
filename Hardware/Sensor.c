@@ -1,7 +1,9 @@
 #include "Sensor.h"
-#include "OLED.h"
 
-const int posWeight[8] = {-20, -10, -5, -2, 2, 5, 10, 20};
+#define step 20
+
+/* 参考车模权重: 外侧高权重(纠偏猛), 对标黑线(0=黑)求和 */
+const int posWeight[8] = {-40, -16, -5, 0, 0, 5, 16, 40};
 
 #include "robot.h"
 
@@ -27,14 +29,15 @@ static const uint32_t s_sensorPins[8] = {
     TRACK_SENSOR_S6_PIN, TRACK_SENSOR_S7_PIN
 };
 
-/* 传感器读数缓存 */
+/* 传感器读数缓存：Sensor_GetQuantizedPos() 每次读取后更新，
+ * 后续 CornerTurn_Task_v2 等可用缓存版本避免重复 GPIO 读取。 */
 static int s_cachedStates[8];
 
 void Sensor_Init(void)
 {
 }
 
-/* 直接 GPIO 读取 */
+/* 直接 GPIO 读取 (供调试等需要实时值的场景) */
 int Sensor_GetState(int i)
 {
     if (i >= 0 && i < 8)
@@ -58,15 +61,14 @@ int Sensor_GetQuantizedPos(RobotState *rs)
     static int s_lostDebounce = 0;
     int sumPos = 0;
     int count = 0;
-
     for (int i = 0; i < 8; i++)
     {
         int state = Sensor_GetState(i);
-        s_cachedStates[i] = state;          /* 填充缓存 */
-        if (state == 1)
+        s_cachedStates[i] = state;          /* 填充缓存，后续用 Sensor_GetStateCached 读取 */
+        if (state == 0)         /* 黑线(低电平)加权 */
             sumPos += posWeight[i];
         else
-            count++;
+            count++;             /* 白底计数 (丢线判定) */
     }
 
     if (count == 0)
@@ -82,7 +84,7 @@ int Sensor_GetQuantizedPos(RobotState *rs)
                 rs->isLost = 0;
 
             if (rs->baseSpeed > 0)
-                rs->baseSpeed -= 10;
+                rs->baseSpeed -= step;
         }
         sumPos = rs->lastSumPos;
     }
@@ -91,8 +93,8 @@ int Sensor_GetQuantizedPos(RobotState *rs)
         s_lostDebounce = 0;
         rs->lastSumPos = sumPos;
         rs->isLost = 0;
-        if (rs->baseSpeed < 60)
-            rs->baseSpeed += 5;
+        if (rs->baseSpeed < rs->baseSpeedTarget)
+            rs->baseSpeed += step;
     }
     return sumPos;
 }

@@ -17,39 +17,39 @@ void Set_PWM(int pwm_l, int pwm_r)
 
     if (duty_l > PWM_PERIOD)
         duty_l = PWM_PERIOD;
-    if (duty_r > PWM_PERIOD)
+    if (duty_r > PWM_PERIOD)	
         duty_r = PWM_PERIOD;
 
     /* 左轮 H桥方向 */
     if (pwm_l > 0)
     {
-        DL_GPIO_setPins(MOTOR_AIN1_PORT, MOTOR_AIN1_PIN);
-        DL_GPIO_clearPins(MOTOR_AIN2_PORT, MOTOR_AIN2_PIN);
+        DL_GPIO_setPins(MOTOR_PORT, MOTOR_AIN1_PIN);
+        DL_GPIO_clearPins(MOTOR_PORT, MOTOR_AIN2_PIN);
     }
     else if (pwm_l < 0)
     {
-        DL_GPIO_clearPins(MOTOR_AIN1_PORT, MOTOR_AIN1_PIN);
-        DL_GPIO_setPins(MOTOR_AIN2_PORT, MOTOR_AIN2_PIN);
+        DL_GPIO_clearPins(MOTOR_PORT, MOTOR_AIN1_PIN);
+        DL_GPIO_setPins(MOTOR_PORT, MOTOR_AIN2_PIN);
     }
     else
     {
-        DL_GPIO_clearPins(MOTOR_AIN1_PORT, MOTOR_AIN1_PIN | MOTOR_AIN2_PIN);
+        DL_GPIO_clearPins(MOTOR_PORT, MOTOR_AIN1_PIN | MOTOR_AIN2_PIN);
     }
 
     /* 右轮 H桥方向 */
     if (pwm_r > 0)
     {
-        DL_GPIO_setPins(MOTOR_BIN1_PORT, MOTOR_BIN1_PIN);
-        DL_GPIO_clearPins(MOTOR_BIN2_PORT, MOTOR_BIN2_PIN);
+        DL_GPIO_setPins(MOTOR_PORT, MOTOR_BIN1_PIN);
+        DL_GPIO_clearPins(MOTOR_PORT, MOTOR_BIN2_PIN);
     }
     else if (pwm_r < 0)
     {
-        DL_GPIO_clearPins(MOTOR_BIN1_PORT, MOTOR_BIN1_PIN);
-        DL_GPIO_setPins(MOTOR_BIN2_PORT, MOTOR_BIN2_PIN);
+        DL_GPIO_clearPins(MOTOR_PORT, MOTOR_BIN1_PIN);
+        DL_GPIO_setPins(MOTOR_PORT, MOTOR_BIN2_PIN);
     }
     else
     {
-        DL_GPIO_clearPins(MOTOR_BIN1_PORT, MOTOR_BIN1_PIN | MOTOR_BIN2_PIN);
+        DL_GPIO_clearPins(MOTOR_PORT, MOTOR_BIN1_PIN | MOTOR_BIN2_PIN);
     }
 
     if (duty_l < 100)

@@ -108,7 +108,7 @@ void PID_control(RobotState *rs)
     PID_Update(&rs->rightPID);
 
     /* 丢线处理：原地旋转回找，不走PID输出 */
-    int turn_speed = 35;
+    int turn_speed = 60;
     if (rs->isLost == 0)
     {
         rs->pwmLeft = rs->leftPID.output;

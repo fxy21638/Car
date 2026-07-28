@@ -3,20 +3,17 @@
 
 /* ======================== 引脚配置（来自 SysConfig） ========================
  * 使用 ti_msp_dl_config.h 里生成的 Key_Pins_* 宏：
- * - Key0: Key_Pins_PIN_0_* (GPIOB.16)
- * - Key1: Key_Pins_PIN_1_* (GPIOB.17)
- * - Key2: Key_Pins_PIN_2_* (GPIOA.28)
- * - Key3: Key_Pins_PIN_3_* (GPIOA.31)
- * 按下为低电平。
+ * - Key0: Key_Pins_PIN_0_* (PA8)
+ * - Key1: Key_Pins_PIN_1_* (PA9)
+ * - Key2: Key_Pins_PIN_2_* (PA28)
+ * - Key3: Key_Pins_PIN_3_* (PA31)
+ * 所有按键同属 Key_Pins_PORT (PORTA)。按下为低电平。
  */
-#define KEY0_PORT (Key_Pins_PIN_0_PORT)
-#define KEY0_PIN  (Key_Pins_PIN_0_PIN)
-#define KEY1_PORT (Key_Pins_PIN_1_PORT)
-#define KEY1_PIN  (Key_Pins_PIN_1_PIN)
-#define KEY2_PORT (Key_Pins_PIN_2_PORT)
-#define KEY2_PIN  (Key_Pins_PIN_2_PIN)
-#define KEY3_PORT (Key_Pins_PIN_3_PORT)
-#define KEY3_PIN  (Key_Pins_PIN_3_PIN)
+#define KEY_PORT   (Key_Pins_PORT)
+#define KEY0_PIN   (Key_Pins_PIN_0_PIN)
+#define KEY1_PIN   (Key_Pins_PIN_1_PIN)
+#define KEY2_PIN   (Key_Pins_PIN_2_PIN)
+#define KEY3_PIN   (Key_Pins_PIN_3_PIN)
 
 #define KEY0_IOMUX (Key_Pins_PIN_0_IOMUX)
 #define KEY1_IOMUX (Key_Pins_PIN_1_IOMUX)
@@ -39,13 +36,13 @@ static uint8_t Key_ReadRawPressed(uint8_t key_num)
     switch (key_num)
     {
     case 0:
-        return (DL_GPIO_readPins(KEY0_PORT, KEY0_PIN) == 0U) ? 1U : 0U;
+        return (DL_GPIO_readPins(KEY_PORT, KEY0_PIN) == 0U) ? 1U : 0U;
     case 1:
-        return (DL_GPIO_readPins(KEY1_PORT, KEY1_PIN) == 0U) ? 1U : 0U;
+        return (DL_GPIO_readPins(KEY_PORT, KEY1_PIN) == 0U) ? 1U : 0U;
     case 2:
-        return (DL_GPIO_readPins(KEY2_PORT, KEY2_PIN) == 0U) ? 1U : 0U;
+        return (DL_GPIO_readPins(KEY_PORT, KEY2_PIN) == 0U) ? 1U : 0U;
     case 3:
-        return (DL_GPIO_readPins(KEY3_PORT, KEY3_PIN) == 0U) ? 1U : 0U;
+        return (DL_GPIO_readPins(KEY_PORT, KEY3_PIN) == 0U) ? 1U : 0U;
     default:
         return 0;
     }

@@ -1,8 +1,9 @@
 #include "Sensor.h"
 
-#define step 10
+#define step 20
 
-const int posWeight[8] = {-24, -12, -6, -2, 2, 6, 12, 24};
+/* 参考车模权重: 外侧高权重(纠偏猛), 对标黑线(0=黑)求和 */
+const int posWeight[8] = {-40, -16, -5, 0, 0, 5, 16, 40};
 
 #include "robot.h"
 
@@ -64,10 +65,10 @@ int Sensor_GetQuantizedPos(RobotState *rs)
     {
         int state = Sensor_GetState(i);
         s_cachedStates[i] = state;          /* 填充缓存，后续用 Sensor_GetStateCached 读取 */
-        if (state == 1)
+        if (state == 0)         /* 黑线(低电平)加权 */
             sumPos += posWeight[i];
         else
-            count++;
+            count++;             /* 白底计数 (丢线判定) */
     }
 
     if (count == 0)
